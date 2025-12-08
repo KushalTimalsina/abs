@@ -44,7 +44,7 @@ class SubscriptionPlan extends Model
      */
     public function hasFeature(string $feature): bool
     {
-        return in_array($feature, $this->features ?? []);
+        return in_array($feature, (array)($this->features ?? []));
     }
 
     /**
@@ -68,14 +68,40 @@ class SubscriptionPlan extends Model
      */
     public function allowsPaymentMethod(string $method): bool
     {
-        return in_array($method, $this->payment_methods ?? []);
+        return in_array($method, (array)($this->payment_methods ?? []));
     }
 
     /**
-     * Get price in rupees (from paisa)
+     * Get price in USD for Stripe (converted from NPR)
+     * Using approximate exchange rate: 1 USD = 133 NPR
      */
-    public function getPriceInRupeesAttribute(): float
+    public function getPriceInUsdAttribute(): float
     {
-        return $this->price / 100;
+        $exchangeRate = 133; // 1 USD = 133 NPR (approximate)
+        return round($this->price / $exchangeRate, 2);
+    }
+
+    /**
+     * Get price in cents for Stripe (USD * 100)
+     */
+    public function getStripePriceAttribute(): int
+    {
+        return (int)($this->price_in_usd * 100);
+    }
+
+    /**
+     * Get formatted price for display
+     */
+    public function getFormattedPriceAttribute(): string
+    {
+        return 'NPR ' . number_format($this->price, 2);
+    }
+
+    /**
+     * Get formatted USD price for display
+     */
+    public function getFormattedUsdPriceAttribute(): string
+    {
+        return '$' . number_format($this->price_in_usd, 2);
     }
 }

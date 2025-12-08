@@ -40,6 +40,14 @@ class Organization extends Model
     }
 
     /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName()
+    {
+        return 'slug';
+    }
+
+    /**
      * Get the active subscription for this organization
      */
     public function subscription()
@@ -79,6 +87,14 @@ class Organization extends Model
     public function shifts()
     {
         return $this->hasMany(Shift::class);
+    }
+
+    /**
+     * Get team invitations for this organization
+     */
+    public function teamInvitations()
+    {
+        return $this->hasMany(\App\Models\TeamInvitation::class);
     }
 
     /**

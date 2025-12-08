@@ -63,16 +63,9 @@ class OrganizationAuthController extends Controller
         OrganizationSubscription::create([
             'organization_id' => $organization->id,
             'subscription_plan_id' => $plan->id,
-            'starts_at' => now(),
-            // For now, assuming infinite trial or manual payment activation. 
-            // In real flow, might redirect to payment. For MVP/Task, active immediately or trial.
-            // Let's set it as 'active' for 'Cash' plans (Basic) or if free.
-            // If strictly following logic, 'Basic' is 50rs. 
-            // Let's assume for this "Registration" flow we activate it for now or set logic.
-            // Requirement says "Subscribe to a plan".
-            // Let's default to active with 30 days expiry for Demo purposes.
-            'ends_at' => now()->addDays(30), 
-            'status' => 'active',
+            'start_date' => now(),
+            'end_date' => now()->addDays($plan->duration_days ?? 30),
+            'is_active' => true,
         ]);
 
         event(new Registered($user));

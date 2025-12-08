@@ -5,6 +5,141 @@
         </h2>
     </x-slot>
 
+    @if(Auth::user()->user_type === 'admin')
+        @php
+            $currentOrg = Auth::user()->organizations()->first();
+            $subscription = $currentOrg?->subscription;
+        @endphp
+
+        <!-- Subscription Status Widget -->
+        <div class="mb-6">
+            <div class="p-6 bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-lg shadow-lg text-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold mb-2">Your Subscription</h3>
+                        
+                        @if($subscription && $subscription->is_active)
+                            <div class="flex items-center space-x-4">
+                                <div>
+                                    <p class="text-2xl font-bold">{{ $subscription->plan->name }}</p>
+                                    <p class="text-blue-100 text-sm">
+                                        Active until {{ $subscription->end_date->format('M d, Y') }}
+                                        <span class="ml-2">({{ $subscription->end_date->diffForHumans() }})</span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="bg-white/10 rounded-lg p-3">
+                                    <p class="text-blue-100 text-xs">Team Members</p>
+                                    <p class="text-lg font-semibold">{{ $subscription->plan->max_team_members ?? '∞' }}</p>
+                                </div>
+                                <div class="bg-white/10 rounded-lg p-3">
+                                    <p class="text-blue-100 text-xs">Services</p>
+                                    <p class="text-lg font-semibold">{{ $subscription->plan->max_services ?? '∞' }}</p>
+                                </div>
+                                <div class="bg-white/10 rounded-lg p-3">
+                                    <p class="text-blue-100 text-xs">Price</p>
+                                    <p class="text-lg font-semibold">NPR {{ number_format($subscription->plan->price, 2) }}</p>
+                                </div>
+                            </div>
+                        @else
+                            <div class="bg-yellow-500/20 border border-yellow-300 rounded-lg p-4 mt-2">
+                                <p class="font-semibold">⚠️ No Active Subscription</p>
+                                <p class="text-sm text-yellow-100 mt-1">Please subscribe to a plan to activate your account and start using all features.</p>
+                            </div>
+                        @endif
+                    </div>
+                    
+                    <div class="ml-6">
+                        <button onclick="document.getElementById('upgrade-modal').classList.remove('hidden')" 
+                                class="px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-lg">
+                            @if($subscription && $subscription->is_active)
+                                Upgrade Plan
+                            @else
+                                Choose Plan
+                            @endif
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upgrade Modal -->
+        <div id="upgrade-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-5xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Choose Your Plan</h3>
+                    <button onclick="document.getElementById('upgrade-modal').classList.add('hidden')" 
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    @foreach(\App\Models\SubscriptionPlan::where('is_active', true)->orderBy('price')->get() as $plan)
+                        <div class="border-2 {{ $subscription && $subscription->plan_id == $plan->id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700' }} rounded-lg p-6 relative">
+                            @if($subscription && $subscription->plan_id == $plan->id)
+                                <span class="absolute top-0 right-0 bg-blue-500 text-white text-xs px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                                    Current Plan
+                                </span>
+                            @endif
+                            
+                            <h4 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ $plan->name }}</h4>
+                            <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">{{ $plan->description }}</p>
+                            
+                            <div class="mb-4">
+                                <span class="text-3xl font-bold text-gray-900 dark:text-white">NPR {{ number_format($plan->price, 0) }}</span>
+                                <span class="text-gray-500 dark:text-gray-400 text-sm">/{{ $plan->duration_days }} days</span>
+                            </div>
+                            
+                            <ul class="space-y-2 mb-6">
+                                <li class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                    <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    {{ $plan->max_team_members ?? 'Unlimited' }} Team Members
+                                </li>
+                                <li class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                    <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    {{ $plan->max_services ?? 'Unlimited' }} Services
+                                </li>
+                                <li class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                    <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    {{ $plan->slot_scheduling_days ?? 365 }} Days Scheduling
+                                </li>
+                            </ul>
+                            
+                            @if($subscription && $subscription->plan_id == $plan->id)
+                                <button disabled class="w-full px-4 py-2 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed">
+                                    Current Plan
+                                </button>
+                            @else
+                                <form action="{{ route('subscription.upgrade') }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="plan_id" value="{{ $plan->id }}">
+                                    <button type="submit" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors">
+                                        @if($subscription)
+                                            {{ $plan->price > $subscription->plan->price ? 'Upgrade' : 'Downgrade' }}
+                                        @else
+                                            Subscribe
+                                        @endif
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2 lg:grid-cols-4">
         <!-- Stat Card 1 -->
@@ -273,4 +408,18 @@
             </li>
         </ol>
     </div>
+
+    @if(Auth::user()->user_type === 'admin')
+    <script>
+        // Auto-open subscription modal if URL has #subscription
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.location.hash === '#subscription') {
+                const modal = document.getElementById('upgrade-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                }
+            }
+        });
+    </script>
+    @endif
 </x-app-layout>

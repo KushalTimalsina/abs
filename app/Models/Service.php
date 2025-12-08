@@ -17,7 +17,12 @@ class Service extends Model
         'duration',
         'price',
         'color',
-        'status',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'price' => 'decimal:2',
     ];
 
     /**
@@ -49,6 +54,6 @@ class Service extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('is_active', true);
     }
 }

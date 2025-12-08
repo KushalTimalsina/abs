@@ -47,12 +47,12 @@ class ServiceController extends Controller
         ]);
 
         $validated['organization_id'] = $organization->id;
-        $validated['is_active'] = $request->has('is_active');
+        $validated['is_active'] = $request->has('is_active') ? true : false;
 
         $service = Service::create($validated);
 
         return redirect()
-            ->route('services.index', $organization)
+            ->route('organization.services.index', $organization)
             ->with('success', 'Service created successfully');
     }
 
@@ -103,12 +103,12 @@ class ServiceController extends Controller
             'is_active' => ['boolean'],
         ]);
 
-        $validated['is_active'] = $request->has('is_active');
+        $validated['is_active'] = $request->has('is_active') ? true : false;
 
         $service->update($validated);
 
         return redirect()
-            ->route('services.index', $organization)
+            ->route('organization.services.index', $organization)
             ->with('success', 'Service updated successfully');
     }
 
@@ -130,14 +130,14 @@ class ServiceController extends Controller
             
         if ($hasActiveBookings) {
             return redirect()
-                ->route('services.index', $organization)
+                ->route('organization.services.index', $organization)
                 ->with('error', 'Cannot delete service with active bookings. Please cancel or complete them first.');
         }
         
         $service->delete();
 
         return redirect()
-            ->route('services.index', $organization)
+            ->route('organization.services.index', $organization)
             ->with('success', 'Service deleted successfully');
     }
 

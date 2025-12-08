@@ -76,8 +76,8 @@
                     </div>
                     
                     <div class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                        Rs {{ number_format($plan->price / 100, 2) }}
-                        <span class="text-sm font-normal text-gray-500">/month</span>
+                        NPR {{ number_format($plan->price, 2) }}
+                        <span class="text-sm font-normal text-gray-500">/{{ $plan->duration_days }} days</span>
                     </div>
                     
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ $plan->description }}</p>
@@ -95,7 +95,7 @@
                             </svg>
                             {{ $plan->slot_scheduling_days }} days scheduling
                         </li>
-                        @if(in_array('online', $plan->payment_methods))
+                        @if($plan->allowsPaymentMethod('online'))
                         <li class="flex items-center text-gray-700 dark:text-gray-300">
                             <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>

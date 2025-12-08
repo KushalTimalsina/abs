@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Organization;
 use App\Models\OrganizationSubscription;
 use App\Models\SubscriptionPlan;
+use App\Models\SubscriptionPayment;
 use App\Models\WidgetSettings;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Auth\Events\Registered;
@@ -15,6 +16,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\WelcomeEmail;
+use App\Mail\SubscriptionConfirmation;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
@@ -63,13 +67,13 @@ class RegisteredUserController extends Controller
                 'phone' => $request->phone,
             ]);
 
-            // If registering as admin, create organization and subscription
+            // If registering as admin, create organization and pending subscription payment
             if ($request->user_type === 'admin') {
                 $organization = Organization::create([
                     'name' => $request->organization_name,
                     'email' => $request->email,
                     'phone' => $request->phone,
-                    'status' => 'active',
+                    'status' => 'inactive', // Inactive until payment is verified
                 ]);
 
                 // Attach user as admin
@@ -80,15 +84,17 @@ class RegisteredUserController extends Controller
                     'permissions' => json_encode([]), // Admin has all permissions
                 ]);
 
-                // Create subscription
+                // Create pending subscription payment instead of active subscription
                 $plan = SubscriptionPlan::findOrFail($request->subscription_plan_id);
-                OrganizationSubscription::create([
+                $subscriptionPayment = SubscriptionPayment::create([
                     'organization_id' => $organization->id,
                     'subscription_plan_id' => $plan->id,
-                    'starts_at' => now(),
-                    'ends_at' => now()->addMonth(), // 1 month subscription
-                    'status' => 'active',
-                    'auto_renew' => true,
+                    'amount' => $plan->price,
+                    'payment_method' => 'pending', // Will be updated when payment is made
+                    'status' => 'pending',
+                    'duration_months' => ceil($plan->duration_days / 30),
+                    'start_date' => now(),
+                    'end_date' => now()->addDays($plan->duration_days ?? 30),
                 ]);
 
                 // Create default widget settings
@@ -100,20 +106,32 @@ class RegisteredUserController extends Controller
                     'show_logo' => true,
                 ]);
 
-                // Store organization in session
-                session(['current_organization_id' => $organization->id]);
+                // Store payment ID temporarily (will be set in session after login)
+                $pendingPaymentId = $subscriptionPayment->id;
+                $currentOrgId = $organization->id;
             }
 
             event(new Registered($user));
+            
+            // Send welcome email only (subscription confirmation sent after payment verification)
+            Mail::to($user->email)->send(new WelcomeEmail($user));
 
             Auth::login($user);
+
+            // Set session AFTER login to prevent session regeneration from clearing it
+            if ($user->user_type === 'admin' && isset($pendingPaymentId)) {
+                session([
+                    'current_organization_id' => $currentOrgId,
+                    'pending_payment_id' => $pendingPaymentId,
+                ]);
+            }
 
             DB::commit();
 
             // Redirect based on user type
             if ($user->user_type === 'admin') {
-                return redirect()->route('organization.setup')
-                    ->with('success', 'Welcome! Let\'s complete your organization setup.');
+                return redirect()->route('subscription.payment.show')
+                    ->with('success', 'Please complete your subscription payment to activate your account.');
             }
 
             return redirect(RouteServiceProvider::HOME);

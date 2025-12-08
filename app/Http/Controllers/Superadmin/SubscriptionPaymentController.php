@@ -67,18 +67,25 @@ class SubscriptionPaymentController extends Controller
         ]);
 
         // Update or create organization subscription
-        OrganizationSubscription::updateOrCreate(
+        $subscription = OrganizationSubscription::updateOrCreate(
             ['organization_id' => $payment->organization_id],
             [
                 'subscription_plan_id' => $payment->subscription_plan_id,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
-                'status' => 'active',
+                'is_active' => true,
             ]
         );
 
+        // Activate the organization
+        $payment->organization->update(['status' => 'active']);
+
+        // Send subscription confirmation email
+        \Mail::to($payment->organization->email ?? $payment->organization->users->first()->email)
+            ->send(new \App\Mail\SubscriptionConfirmation($payment->organization, $subscription));
+
         return redirect()->back()
-            ->with('success', 'Payment verified and subscription activated');
+            ->with('success', 'Payment verified, subscription activated, and confirmation email sent');
     }
 
     /**

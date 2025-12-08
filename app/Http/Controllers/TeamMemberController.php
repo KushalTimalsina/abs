@@ -29,6 +29,75 @@ class TeamMemberController extends Controller
     }
 
     /**
+     * Show form to create new team member
+     */
+    public function create(Organization $organization)
+    {
+        $this->authorize('manageTeam', $organization);
+        
+        return view('team.create', compact('organization'));
+    }
+
+    /**
+     * Store new team member
+     */
+    public function store(Request $request, Organization $organization)
+    {
+        $this->authorize('manageTeam', $organization);
+        
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', 'in:admin,team_member,frontdesk'],
+            'permissions' => ['nullable', 'array'],
+        ]);
+
+        // Check team member limit
+        if (!$organization->canAddTeamMember()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Team member limit reached for your subscription plan');
+        }
+
+        // Create user
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => bcrypt($validated['password']),
+            'user_type' => 'team_member',
+        ]);
+
+        // Attach to organization
+        $organization->users()->attach($user->id, [
+            'role' => $validated['role'],
+            'permissions' => json_encode($validated['permissions'] ?? []),
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        return redirect()
+            ->route('organization.team.index', $organization)
+            ->with('success', 'Team member added successfully');
+    }
+
+    /**
+     * Show form to edit team member
+     */
+    public function edit(Organization $organization, User $user)
+    {
+        $this->authorize('manageTeam', $organization);
+        
+        // Load user with pivot data from organization relationship
+        $user = $organization->users()
+            ->where('users.id', $user->id)
+            ->withPivot('role', 'permissions', 'status', 'joined_at')
+            ->firstOrFail();
+        
+        return view('team.edit', compact('organization', 'user'));
+    }
+
+    /**
      * Update team member role and permissions
      */
     public function update(Request $request, Organization $organization, User $user)

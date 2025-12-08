@@ -17,13 +17,13 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->integer('duration')->default(30); // duration in minutes
-            $table->integer('price'); // in paisa
+            $table->decimal('price', 10, 2)->default(0); // in NPR
             $table->string('color')->default('#3B82F6'); // for calendar display
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
             
-            $table->index(['organization_id', 'status']);
+            $table->index(['organization_id', 'is_active']);
         });
     }
 

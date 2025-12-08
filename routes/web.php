@@ -50,6 +50,14 @@ Route::middleware(['superadmin'])->prefix('superadmin')->name('superadmin.')->gr
         Route::post('/payments/{payment}/verify', [\App\Http\Controllers\Superadmin\SubscriptionPaymentController::class, 'verify'])->name('verify');
         Route::post('/payments/{payment}/reject', [\App\Http\Controllers\Superadmin\SubscriptionPaymentController::class, 'reject'])->name('reject');
     });
+
+    // Payment gateway settings
+    Route::prefix('payment-settings')->name('payment-settings.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Superadmin\PaymentSettingsController::class, 'index'])->name('index');
+        Route::get('/{gateway}/edit', [\App\Http\Controllers\Superadmin\PaymentSettingsController::class, 'edit'])->name('edit');
+        Route::put('/{gateway}', [\App\Http\Controllers\Superadmin\PaymentSettingsController::class, 'update'])->name('update');
+        Route::delete('/{gateway}/qr', [\App\Http\Controllers\Superadmin\PaymentSettingsController::class, 'deleteQr'])->name('delete-qr');
+    });
 });
 
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
@@ -85,6 +93,9 @@ Route::middleware('auth')->group(function () {
         // Team members routes
         Route::prefix('{organization}/team')->name('team.')->group(function () {
             Route::get('/', [\App\Http\Controllers\TeamMemberController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\TeamMemberController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\TeamMemberController::class, 'store'])->name('store');
+            Route::get('/{user}/edit', [\App\Http\Controllers\TeamMemberController::class, 'edit'])->name('edit');
             Route::put('/{user}', [\App\Http\Controllers\TeamMemberController::class, 'update'])->name('update');
             Route::delete('/{user}', [\App\Http\Controllers\TeamMemberController::class, 'destroy'])->name('destroy');
             Route::post('/{user}/reactivate', [\App\Http\Controllers\TeamMemberController::class, 'reactivate'])->name('reactivate');
@@ -197,7 +208,20 @@ Route::middleware('auth')->group(function () {
 Route::get('/payment/esewa/success/{payment}', [\App\Http\Controllers\PaymentController::class, 'esewaSuccess'])->name('payment.esewa.success');
 Route::get('/payment/esewa/failure/{payment}', [\App\Http\Controllers\PaymentController::class, 'esewaFailure'])->name('payment.esewa.failure');
 Route::get('/payment/khalti/callback/{payment}', [\App\Http\Controllers\PaymentController::class, 'khaltiCallback'])->name('payment.khalti.callback');
-Route::post('/payment/stripe/webhook', [\App\Http\Controllers\PaymentController::class, 'stripeWebhook'])->name('payment.stripe.webhook');
+
+// Stripe payment routes
+Route::post('/stripe/checkout', [\App\Http\Controllers\StripePaymentController::class, 'createCheckout'])->middleware('auth')->name('stripe.checkout');
+Route::get('/stripe/success', [\App\Http\Controllers\StripePaymentController::class, 'success'])->middleware('auth')->name('stripe.success');
+Route::post('/stripe/webhook', [\App\Http\Controllers\StripePaymentController::class, 'webhook'])->name('stripe.webhook');
+
+// Subscription payment submission routes (for new registrations)
+Route::middleware(['auth'])->prefix('subscription')->name('subscription.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SubscriptionUpgradeController::class, 'index'])->name('index');
+    Route::get('/payment', [\App\Http\Controllers\SubscriptionPaymentSubmissionController::class, 'show'])->name('payment.show');
+    Route::post('/payment', [\App\Http\Controllers\SubscriptionPaymentSubmissionController::class, 'submit'])->name('payment.submit');
+    Route::get('/payment/skip', [\App\Http\Controllers\SubscriptionPaymentSubmissionController::class, 'skip'])->name('payment.skip');
+    Route::post('/upgrade', [\App\Http\Controllers\SubscriptionUpgradeController::class, 'upgrade'])->name('upgrade');
+});
 
 // Google OAuth Routes
 Route::get('auth/google', [AuthController::class, 'redirect'])->name('auth.google');
