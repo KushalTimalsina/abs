@@ -19,14 +19,9 @@ class OrganizationManagementController extends Controller
         // Filter by status
         if ($request->has('status')) {
             if ($request->status === 'active') {
-                $query->whereHas('subscription', function($q) {
-                    $q->where('is_active', true)
-                      ->where('end_date', '>=', now());
-                });
-            } elseif ($request->status === 'expired') {
-                $query->whereHas('subscription', function($q) {
-                    $q->where('end_date', '<', now());
-                });
+                $query->where('status', 'active');
+            } elseif ($request->status === 'suspended') {
+                $query->where('status', 'suspended');
             }
         }
 
@@ -38,7 +33,8 @@ class OrganizationManagementController extends Controller
             });
         }
 
-        $organizations = $query->paginate(20);
+        $perPage = $request->input('per_page', 20);
+        $organizations = $query->paginate($perPage)->withQueryString();
 
         return view('superadmin.organizations.index', compact('organizations'));
     }
@@ -72,6 +68,8 @@ class OrganizationManagementController extends Controller
      */
     public function suspend(Organization $organization)
     {
+        $organization->update(['status' => 'suspended']);
+        
         $organization->subscription()->update([
             'is_active' => false,
         ]);
@@ -85,6 +83,8 @@ class OrganizationManagementController extends Controller
      */
     public function activate(Organization $organization)
     {
+        $organization->update(['status' => 'active']);
+        
         $organization->subscription()->update([
             'is_active' => true,
         ]);

@@ -81,9 +81,9 @@ class SubscriptionPaymentController extends Controller
         // Activate the organization
         $payment->organization->update(['status' => 'active']);
 
-        // Send subscription confirmation email
+        // Send subscription confirmation email (queued)
         \Mail::to($payment->organization->email ?? $payment->organization->users->first()->email)
-            ->send(new \App\Mail\SubscriptionConfirmation($payment->organization, $subscription));
+            ->queue(new \App\Mail\SubscriptionConfirmation($payment->organization, $subscription));
 
         // Auto-generate invoice
         $invoiceService = app(InvoiceService::class);

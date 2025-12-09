@@ -31,8 +31,6 @@ class PaymentGatewayController extends Controller
         
         $validated = $request->validate([
             'gateway_name' => ['required', 'in:esewa,khalti,stripe,bank_transfer,cash'],
-            'is_active' => ['boolean'],
-            'is_test_mode' => ['boolean'],
             
             // eSewa credentials
             'esewa_merchant_id' => ['required_if:gateway_name,esewa', 'nullable', 'string'],
@@ -121,7 +119,7 @@ class PaymentGatewayController extends Controller
         );
 
         return redirect()
-            ->route('payment-gateways.index', $organization)
+            ->route('organization.payment-gateways.index', $organization)
             ->with('success', ucfirst(str_replace('_', ' ', $validated['gateway_name'])) . ' payment method configured successfully');
     }
 
@@ -157,7 +155,7 @@ class PaymentGatewayController extends Controller
         $gateway->delete();
 
         return redirect()
-            ->route('payment-gateways.index', $organization)
+            ->route('organization.payment-gateways.index', $organization)
             ->with('success', 'Payment gateway removed');
     }
 

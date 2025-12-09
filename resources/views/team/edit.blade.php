@@ -49,25 +49,52 @@
                             </p>
                         </div>
 
-                        <!-- Permissions (Optional - for future use) -->
-                        <div class="mb-6">
-                            <x-input-label :value="__('Permissions (Optional)')" />
-                            <div class="mt-2 space-y-2">
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="permissions[]" value="manage_services" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Manage Services</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="permissions[]" value="manage_bookings" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Manage Bookings</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="permissions[]" value="view_reports" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">View Reports</span>
-                                </label>
+                        <!-- Permissions -->
+                        <div class="mb-6" id="permissions-section">
+                            <div class="flex items-center justify-between mb-3">
+                                <x-input-label :value="__('Permissions')" />
+                                <button type="button" onclick="toggleAllPermissions()" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                                    Toggle All
+                                </button>
                             </div>
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Additional permissions for this team member</p>
+                            
+                            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 space-y-6">
+                                @foreach($permissionsConfig as $category => $categoryData)
+                                    <div class="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0 last:pb-0">
+                                        <h4 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            {{ $categoryData['label'] }}
+                                        </h4>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-7">
+                                            @foreach($categoryData['permissions'] as $permission => $label)
+                                                <label class="flex items-start">
+                                                    <input type="checkbox" 
+                                                           name="permissions[]" 
+                                                           value="{{ $permission }}" 
+                                                           {{ in_array($permission, $currentPermissions) ? 'checked' : '' }}
+                                                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 mt-1">
+                                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ $label }}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            
+                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                <strong>Note:</strong> Admins have all permissions by default. These settings only apply to Team Members and Front Desk roles.
+                            </p>
                         </div>
+
+                        <script>
+                            function toggleAllPermissions() {
+                                const checkboxes = document.querySelectorAll('#permissions-section input[type="checkbox"]');
+                                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                                checkboxes.forEach(cb => cb.checked = !allChecked);
+                            }
+                        </script>
 
                         <div class="flex items-center justify-end mt-6">
                             <a href="{{ route('organization.team.index', $organization) }}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mr-4">

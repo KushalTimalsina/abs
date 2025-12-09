@@ -4,12 +4,14 @@
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 Team Members - {{ $organization->name }}
             </h2>
+            @if(isAdmin() || userCan('invite_team'))
             <a href="{{ route('organization.team.create', $organization) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
                 </svg>
                 Add Team Member
             </a>
+            @endif
         </div>
     </x-slot>
 
@@ -70,9 +72,12 @@
                                                 {{ $member->pivot->joined_at ? \Carbon\Carbon::parse($member->pivot->joined_at)->format('M d, Y') : 'N/A' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                @if(isAdmin() || userCan('edit_team'))
                                                 <a href="{{ route('organization.team.edit', [$organization, $member]) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3">
                                                     Edit
                                                 </a>
+                                                @endif
+                                                @if(isAdmin() || userCan('remove_team'))
                                                 @if($member->pivot->status === 'active')
                                                     <form action="{{ route('organization.team.destroy', [$organization, $member]) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to remove this team member?');">
                                                         @csrf
@@ -88,6 +93,7 @@
                                                             Reactivate
                                                         </button>
                                                     </form>
+                                                @endif
                                                 @endif
                                             </td>
                                         </tr>
@@ -106,6 +112,7 @@
                             </svg>
                             <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No team members</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by adding a new team member.</p>
+                            @if(isAdmin() || userCan('invite_team'))
                             <div class="mt-6">
                                 <a href="{{ route('organization.team.create', $organization) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
                                     <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -114,6 +121,7 @@
                                     Add Team Member
                                 </a>
                             </div>
+                            @endif
                         </div>
                     @endif
                 </div>

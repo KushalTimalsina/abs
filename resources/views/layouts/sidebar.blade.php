@@ -27,6 +27,15 @@
                     @if($superadmin)
                     <!-- Superadmin Menu -->
                     <li>
+                        <a href="{{ route('superadmin.dashboard') }}" class="flex items-center p-2 text-base text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                            <svg class="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                            </svg>
+                            <span class="flex-1 ml-3 whitespace-nowrap">Dashboard</span>
+                        </a>
+                    </li>
+
+                    <li>
                         <a href="{{ route('superadmin.organizations.index') }}" class="flex items-center p-2 text-base text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                             <svg class="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
@@ -63,6 +72,15 @@
                             <span class="flex-1 ml-3 whitespace-nowrap">Payment Settings</span>
                         </a>
                     </li>
+
+                    <li>
+                        <a href="{{ route('notifications.index') }}" class="flex items-center p-2 text-base text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                            <svg class="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
+                            </svg>
+                            <span class="flex-1 ml-3 whitespace-nowrap">Notifications</span>
+                        </a>
+                    </li>
                     @endif
 
                     @if($user && $user->user_type !== 'customer' && $currentOrg)
@@ -81,15 +99,20 @@
                             <li>
                                 <a href="{{ route('organization.bookings.index', $currentOrg) }}" class="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">All Bookings</a>
                             </li>
+                            @if(isAdmin() || userCan('create_booking'))
                             <li>
                                 <a href="{{ route('organization.bookings.create', $currentOrg) }}" class="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">New Booking</a>
                             </li>
+                            @endif
+                            @if(isAdmin() || userCan('view_all_slots') || userCan('view_own_slots'))
                             <li>
                                 <a href="{{ route('organization.slots.index', $currentOrg) }}" class="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Manage Slots</a>
                             </li>
+                            @endif
                         </ul>
                     </li>
 
+                    @if(isAdmin() || userCan('view_services'))
                     <!-- Services -->
                     <li>
                         <a href="{{ route('organization.services.index', $currentOrg) }}" class="flex items-center p-2 text-base text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
@@ -99,8 +122,10 @@
                             <span class="flex-1 ml-3 whitespace-nowrap">Services</span>
                         </a>
                     </li>
+                    @endif
 
-                    <!-- Subscription -->
+                    @if(isAdmin())
+                    <!-- Subscription - Admin Only -->
                     <li>
                         <a href="{{ route('subscription.index') }}" class="flex items-center p-2 text-base text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                             <svg class="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -123,7 +148,9 @@
                             @endif
                         </a>
                     </li>
+                    @endif
 
+                    @if(isAdmin() || userCan('view_team'))
                     <!-- Team -->
                     <li>
                         <button type="button" class="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700" aria-controls="dropdown-team" data-collapse-toggle="dropdown-team">
@@ -144,7 +171,9 @@
                             </li>
                         </ul>
                     </li>
+                    @endif
 
+                    @if(isAdmin() || userCan('view_payments'))
                     <!-- Payments -->
                     <li>
                         <a href="{{ route('organization.payments.index', $currentOrg) }}" class="flex items-center p-2 text-base text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
@@ -155,8 +184,10 @@
                             <span class="flex-1 ml-3 whitespace-nowrap">Payments</span>
                         </a>
                     </li>
+                    @endif
 
-                    <!-- Settings -->
+                    @if(isAdmin())
+                    <!-- Settings - Admin Only -->
                     <li>
                         <button type="button" class="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700" aria-controls="dropdown-settings" data-collapse-toggle="dropdown-settings">
                             <svg class="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -185,6 +216,7 @@
                             </li>
                         </ul>
                     </li>
+                    @endif
                     @endif
 
                     <!-- Notifications -->

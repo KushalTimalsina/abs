@@ -198,6 +198,8 @@ Route::middleware('auth')->group(function () {
     // Notification routes
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\NotificationController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\NotificationController::class, 'store'])->name('store');
         Route::post('/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('mark-read');
         Route::post('/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
         Route::delete('/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
@@ -218,6 +220,7 @@ Route::prefix('api/widget/{organization}')->name('api.widget.')->scopeBindings()
     Route::get('/services', [\App\Http\Controllers\WidgetApiController::class, 'getServices'])->name('services');
     Route::get('/services/{service}/slots', [\App\Http\Controllers\WidgetApiController::class, 'getAvailableSlots'])->name('slots');
     Route::post('/bookings', [\App\Http\Controllers\WidgetApiController::class, 'createBooking'])->name('bookings');
+    Route::post('/bookings/{booking}/bank-transfer', [\App\Http\Controllers\WidgetApiController::class, 'submitBankTransfer'])->name('bank-transfer');
     Route::post('/bookings/{booking}/payment', [\App\Http\Controllers\WidgetApiController::class, 'initiatePayment'])->name('payment.initiate');
     Route::get('/bookings/{booking}/payment/{payment}/success', [\App\Http\Controllers\WidgetApiController::class, 'paymentSuccess'])->name('payment.success');
     Route::get('/bookings/{booking}/payment/{payment}/failure', [\App\Http\Controllers\WidgetApiController::class, 'paymentFailure'])->name('payment.failure');

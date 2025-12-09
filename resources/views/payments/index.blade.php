@@ -33,6 +33,7 @@
                                 <option value="esewa" {{ request('method') == 'esewa' ? 'selected' : '' }}>eSewa</option>
                                 <option value="khalti" {{ request('method') == 'khalti' ? 'selected' : '' }}>Khalti</option>
                                 <option value="stripe" {{ request('method') == 'stripe' ? 'selected' : '' }}>Stripe</option>
+                                <option value="bank_transfer" {{ request('method') == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
                                 <option value="cash" {{ request('method') == 'cash' ? 'selected' : '' }}>Cash</option>
                             </select>
                         </div>
@@ -103,12 +104,14 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                    @if($payment->gateway_type === 'esewa') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                                    @elseif($payment->gateway_type === 'khalti') bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
-                                                    @elseif($payment->gateway_type === 'stripe') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                                    @if($payment->payment_method === 'esewa') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                                    @elseif($payment->payment_method === 'khalti') bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                                    @elseif($payment->payment_method === 'stripe') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                                    @elseif($payment->payment_method === 'bank_transfer') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                                    @elseif($payment->payment_method === 'cash') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
                                                     @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
                                                     @endif">
-                                                    {{ ucfirst($payment->gateway_type) }}
+                                                    {{ $payment->payment_method === 'bank_transfer' ? 'Bank Transfer' : ucfirst($payment->payment_method ?? 'N/A') }}
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
@@ -130,8 +133,20 @@
                             </table>
                         </div>
 
-                        <div class="mt-4">
-                            {{ $payments->links() }}
+                        <!-- Pagination and Per-Page Selector -->
+                        <div class="mt-4 flex items-center justify-between">
+                            <div class="text-sm text-gray-700 dark:text-gray-300">
+                                Showing {{ $payments->firstItem() ?? 0 }} to {{ $payments->lastItem() ?? 0 }} of {{ $payments->total() }} results
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <form method="GET" action="{{ route('organization.payments.index', $organization) }}" class="inline-block">
+                                    @foreach(request()->except('per_page') as $key => $value)
+                                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                    @endforeach
+                                    <x-per-page-selector :perPage="20" />
+                                </form>
+                                {{ $payments->links() }}
+                            </div>
                         </div>
                     @else
                         <div class="text-center py-12">

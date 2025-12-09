@@ -108,9 +108,9 @@ class StripePaymentController extends Controller
                 // Activate organization
                 $payment->organization->update(['status' => 'active']);
 
-                // Send confirmation email
+                // Send confirmation email (queued)
                 \Mail::to($payment->organization->email ?? $payment->organization->users->first()->email)
-                    ->send(new \App\Mail\SubscriptionConfirmation($payment->organization, $subscription));
+                    ->queue(new \App\Mail\SubscriptionConfirmation($payment->organization, $subscription));
 
                 // Clear session
                 session()->forget('pending_payment_id');

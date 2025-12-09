@@ -25,22 +25,124 @@
     </style>
 </head>
 <body class="bg-gray-50">
-    <div class="widget-container max-w-2xl mx-auto p-6" x-data="bookingWidget()">
-        <!-- Header -->
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div class="flex items-center space-x-4">
-                @if($widgetSettings->show_logo && $organization->logo)
-                <img src="{{ Storage::url($organization->logo) }}" alt="{{ $organization->name }}" class="w-16 h-16 rounded-lg object-cover">
-                @endif
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">{{ $organization->name }}</h1>
-                    @if($organization->description)
-                    <p class="text-gray-600 mt-1">{{ $organization->description }}</p>
+    <div class="min-h-screen bg-gray-50 p-4" x-data="bookingWidget()">
+        <!-- Header with Auth -->
+        <div class="max-w-2xl mx-auto mb-4">
+            <div class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    @if($widgetSettings->show_logo && $organization->logo)
+                    <img src="{{ Storage::url($organization->logo) }}" alt="{{ $organization->name }}" class="w-16 h-16 rounded-lg object-cover">
                     @endif
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">{{ $organization->name }}</h1>
+                        @if($organization->description)
+                        <p class="text-sm text-gray-600 mt-1">{{ $organization->description }}</p>
+                        @endif
+                    </div>
+                </div>
+                
+                <!-- Auth Section -->
+                <div x-show="!isLoggedIn" class="flex items-center space-x-2">
+                    <button @click="showAuthModal = true; authMode = 'login'" 
+                            class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800">
+                        Login
+                    </button>
+                    <button @click="showAuthModal = true; authMode = 'register'" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                        Sign Up
+                    </button>
+                </div>
+                
+                <!-- Logged In User -->
+                <div x-show="isLoggedIn" class="flex items-center space-x-3">
+                    <div class="text-right">
+                        <p class="text-sm font-medium text-gray-900" x-text="user.name"></p>
+                        <a href="/customer/bookings" class="text-xs text-blue-600 hover:text-blue-800">My Bookings</a>
+                    </div>
+                    <button @click="logout()" class="text-sm text-gray-600 hover:text-gray-900">
+                        Logout
+                    </button>
                 </div>
             </div>
         </div>
 
+        <!-- Auth Modal -->
+        <div x-show="showAuthModal" 
+             x-cloak
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+             @click.self="showAuthModal = false">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                <!-- Login Form -->
+                <div x-show="authMode === 'login'">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Login</h2>
+                    <form @submit.prevent="login()">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" x-model="loginData.email" required
+                                       class="w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" x-model="loginData.password" required
+                                       class="w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div x-show="authError" class="text-sm text-red-600" x-text="authError"></div>
+                            <button type="submit" :disabled="authLoading"
+                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                <span x-show="!authLoading">Login</span>
+                                <span x-show="authLoading">Logging in...</span>
+                            </button>
+                        </div>
+                    </form>
+                    <p class="mt-4 text-center text-sm text-gray-600">
+                        Don't have an account? 
+                        <button @click="authMode = 'register'" class="text-blue-600 hover:text-blue-800 font-medium">Sign up</button>
+                    </p>
+                </div>
+
+                <!-- Register Form -->
+                <div x-show="authMode === 'register'">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Create Account</h2>
+                    <form @submit.prevent="register()">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                <input type="text" x-model="registerData.name" required
+                                       class="w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" x-model="registerData.email" required
+                                       class="w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input type="tel" x-model="registerData.phone" required
+                                       class="w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" x-model="registerData.password" required
+                                       class="w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div x-show="authError" class="text-sm text-red-600" x-text="authError"></div>
+                            <button type="submit" :disabled="authLoading"
+                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                <span x-show="!authLoading">Create Account</span>
+                                <span x-show="authLoading">Creating...</span>
+                            </button>
+                        </div>
+                    </form>
+                    <p class="mt-4 text-center text-sm text-gray-600">
+                        Already have an account? 
+                        <button @click="authMode = 'login'" class="text-blue-600 hover:text-blue-800 font-medium">Login</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-2xl mx-auto">
         <!-- Service Selection -->
         <div x-show="step === 'services'" class="bg-white rounded-lg shadow-sm p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Select a Service</h2>
@@ -200,34 +302,149 @@
             </div>
 
             <div class="space-y-3 mb-6">
-                <!-- Cash Payment -->
-                <button @click="selectPaymentMethod('cash')" 
-                        class="w-full flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-colors">
-                    <div class="flex items-center">
-                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                @forelse($paymentGateways as $gateway)
+                    @if($gateway->gateway_name === 'cash')
+                        <!-- Cash Payment -->
+                        <button @click="selectPaymentMethod('cash')" 
+                                class="w-full flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-colors">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <div class="font-semibold text-gray-900">Pay Cash</div>
+                                    <div class="text-sm text-gray-600">{{ $gateway->settings['instructions'] ?? 'Pay at the venue' }}</div>
+                                </div>
+                            </div>
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
-                        </div>
-                        <div class="text-left">
-                            <div class="font-semibold text-gray-900">Pay Cash</div>
-                            <div class="text-sm text-gray-600">Pay at the venue</div>
-                        </div>
+                        </button>
+                    @elseif($gateway->gateway_name === 'bank_transfer')
+                        <!-- Bank Transfer -->
+                        <button @click="selectPaymentMethod('bank_transfer')" 
+                                class="w-full flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-colors">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <div class="font-semibold text-gray-900">Bank Transfer</div>
+                                    <div class="text-sm text-gray-600">{{ $gateway->settings['bank_name'] ?? 'Transfer to bank account' }}</div>
+                                </div>
+                            </div>
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    @else
+                        <!-- Online Payment (eSewa, Khalti, Stripe) -->
+                        <button @click="selectPaymentMethod('{{ $gateway->gateway_name }}')" 
+                                class="w-full flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-colors">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <div class="font-semibold text-gray-900">{{ ucfirst($gateway->gateway_name) }}</div>
+                                    <div class="text-sm text-gray-600">Pay online securely</div>
+                                </div>
+                            </div>
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    @endif
+                @empty
+                    <div class="text-center py-8 text-gray-500">
+                        <p>No payment methods available.</p>
+                        <p class="text-sm mt-2">Please contact the organization.</p>
                     </div>
-                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                </button>
-
-                <!-- Online Payment Options (if available) -->
-                <div class="text-center py-4 text-gray-500 text-sm">
-                    <p>Online payment options coming soon</p>
-                </div>
+                @endforelse
             </div>
 
-            <button @click="step = 'booking'" class="w-full text-center text-gray-600 hover:text-gray-900">
-                ← Back to Booking Details
+            <button @click="step = 'payment'" class="w-full text-center text-gray-600 hover:text-gray-900">
+                ← Back to Payment Options
             </button>
+        </div>
+
+        <!-- Bank Transfer Details -->
+        <div x-show="step === 'bank_details'" class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Bank Transfer Details</h2>
+            
+            @php
+                $bankGateway = $paymentGateways->firstWhere('gateway_name', 'bank_transfer');
+            @endphp
+            
+            @if($bankGateway && $bankGateway->settings)
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h3 class="font-semibold text-blue-900 mb-3">Transfer to this account:</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-blue-700">Bank Name:</span>
+                        <span class="font-semibold text-blue-900">{{ $bankGateway->settings['bank_name'] ?? 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-blue-700">Account Holder:</span>
+                        <span class="font-semibold text-blue-900">{{ $bankGateway->settings['account_holder'] ?? 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-blue-700">Account Number:</span>
+                        <span class="font-semibold text-blue-900">{{ $bankGateway->settings['account_number'] ?? 'N/A' }}</span>
+                    </div>
+                    @if(!empty($bankGateway->settings['branch']))
+                    <div class="flex justify-between">
+                        <span class="text-blue-700">Branch:</span>
+                        <span class="font-semibold text-blue-900">{{ $bankGateway->settings['branch'] }}</span>
+                    </div>
+                    @endif
+                    <div class="flex justify-between">
+                        <span class="text-blue-700">Amount:</span>
+                        <span class="font-semibold text-blue-900">NPR <span x-text="selectedService.price"></span></span>
+                    </div>
+                </div>
+                @if(!empty($bankGateway->settings['instructions']))
+                <div class="mt-3 pt-3 border-t border-blue-200">
+                    <p class="text-sm text-blue-800">{{ $bankGateway->settings['instructions'] }}</p>
+                </div>
+                @endif
+            </div>
+            @endif
+
+            <form @submit.prevent="submitBankTransfer()" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Transaction ID / Reference Number <span class="text-red-500">*</span></label>
+                    <input type="text" x-model="bankTransferData.transaction_id" required
+                           class="w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                           placeholder="Enter transaction ID">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload Payment Proof <span class="text-red-500">*</span></label>
+                    <input type="file" @change="bankTransferData.proof_image = $event.target.files[0]" 
+                           accept="image/*" required
+                           class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <p class="text-xs text-gray-500 mt-1">Upload screenshot or photo of your bank transfer receipt</p>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button type="button" @click="step = 'payment'" 
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Back
+                    </button>
+                    <button type="submit" :disabled="submitting"
+                            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                        <span x-show="!submitting">Submit Payment Proof</span>
+                        <span x-show="submitting">Submitting...</span>
+                    </button>
+                </div>
+            </form>
         </div>
 
         <!-- Confirmation -->
@@ -283,6 +500,11 @@
                 submitError: '',
                 bookingResult: {},
                 bookingId: null,
+                selectedPaymentMethod: '',
+                bankTransferData: {
+                    transaction_id: '',
+                    proof_image: null
+                },
 
                 selectService(id, name, duration, price) {
                     this.selectedService = { id, name, duration, price };
@@ -298,7 +520,7 @@
                     this.slots = [];
                     
                     try {
-                        const response = await fetch(`{{ config('app.url') }}/api/widget/{{ $organization->slug }}/services/${this.selectedService.id}/slots?date=${this.selectedDate}`);
+                        const response = await fetch(`{{ request()->getSchemeAndHttpHost() }}/api/widget/{{ $organization->slug }}/services/${this.selectedService.id}/slots?date=${this.selectedDate}`);
                         const data = await response.json();
                         
                         if (data.success) {
@@ -322,7 +544,7 @@
                     this.submitError = '';
 
                     try {
-                        const response = await fetch('{{ config('app.url') }}/api/widget/{{ $organization->slug }}/bookings', {
+                        const response = await fetch('{{ request()->getSchemeAndHttpHost() }}/api/widget/{{ $organization->slug }}/bookings', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -360,13 +582,18 @@
                 },
 
                 async selectPaymentMethod(gateway) {
+                    this.selectedPaymentMethod = gateway;
+                    
                     if (gateway === 'cash') {
-                        // For cash payment, just move to confirmation
+                        // For cash payment, move to confirmation
                         this.step = 'confirmation';
+                    } else if (gateway === 'bank_transfer') {
+                        // For bank transfer, show bank details and upload form
+                        this.step = 'bank_details';
                     } else {
-                        // For online payment, call payment API
+                        // For online payment (esewa, khalti, stripe), call payment API
                         try {
-                            const response = await fetch(`/api/widget/{{ $organization->slug }}/bookings/${this.bookingId}/payment`, {
+                            const response = await fetch(`{{ request()->getSchemeAndHttpHost() }}/api/widget/{{ $organization->slug }}/bookings/${this.bookingId}/payment`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -380,11 +607,51 @@
                             if (data.success && data.payment_url) {
                                 // Redirect to payment gateway
                                 window.location.href = data.payment_url;
+                            } else {
+                                alert('Payment initiation failed. Please try again.');
                             }
                         } catch (error) {
                             console.error('Payment error:', error);
                             alert('Payment initiation failed. Please try again.');
                         }
+                    }
+                },
+
+                async submitBankTransfer() {
+                    if (!this.bankTransferData.transaction_id || !this.bankTransferData.proof_image) {
+                        alert('Please provide transaction ID and upload payment proof');
+                        return;
+                    }
+
+                    this.submitting = true;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('booking_id', this.bookingId);
+                        formData.append('transaction_id', this.bankTransferData.transaction_id);
+                        formData.append('proof_image', this.bankTransferData.proof_image);
+                        formData.append('payment_method', 'bank_transfer');
+
+                        const response = await fetch(`{{ request()->getSchemeAndHttpHost() }}/api/widget/{{ $organization->slug }}/bookings/${this.bookingId}/bank-transfer`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: formData
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.step = 'confirmation';
+                        } else {
+                            alert(data.message || 'Failed to submit payment proof. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Bank transfer submission error:', error);
+                        alert('Failed to submit payment proof. Please try again.');
+                    } finally {
+                        this.submitting = false;
                     }
                 },
 

@@ -70,8 +70,8 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                {{ $org->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                                {{ $org->is_active ? 'Active' : 'Suspended' }}
+                                                {{ $org->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                                {{ ucfirst($org->status) }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -79,7 +79,7 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                             <a href="{{ route('superadmin.organizations.show', $org) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">View</a>
-                                            @if($org->is_active)
+                                            @if($org->status === 'active')
                                                 <form action="{{ route('superadmin.organizations.suspend', $org) }}" method="POST" class="inline">
                                                     @csrf
                                                     <button type="submit" class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400">Suspend</button>
@@ -109,8 +109,20 @@
                     </div>
 
                     @if($organizations->hasPages())
-                        <div class="mt-4">
-                            {{ $organizations->links() }}
+                        <!-- Pagination and Per-Page Selector -->
+                        <div class="mt-4 flex items-center justify-between">
+                            <div class="text-sm text-gray-700 dark:text-gray-300">
+                                Showing {{ $organizations->firstItem() ?? 0 }} to {{ $organizations->lastItem() ?? 0 }} of {{ $organizations->total() }} results
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <form method="GET" action="{{ route('superadmin.organizations.index') }}" class="inline-block">
+                                    @foreach(request()->except('per_page') as $key => $value)
+                                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                    @endforeach
+                                    <x-per-page-selector :perPage="20" />
+                                </form>
+                                {{ $organizations->links() }}
+                            </div>
                         </div>
                     @endif
                 </div>

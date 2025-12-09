@@ -222,24 +222,24 @@ class PaymentController extends Controller
         $query = $organization->payments()->with(['booking', 'invoice']);
 
         // Filter by status
-        if ($request->filled('status')) {
+        if ($request->filled('status') && !empty($request->status)) {
             $query->where('status', $request->status);
         }
 
         // Filter by payment method
-        if ($request->filled('method')) {
+        if ($request->filled('method') && !empty($request->method)) {
             $query->where('payment_method', $request->method);
         }
 
         // Filter by date range
-        if ($request->filled('start_date')) {
+        if ($request->filled('start_date') && !empty($request->start_date)) {
             $query->whereDate('created_at', '>=', $request->start_date);
         }
-        if ($request->filled('end_date')) {
+        if ($request->filled('end_date') && !empty($request->end_date)) {
             $query->whereDate('created_at', '<=', $request->end_date);
         }
 
-        $payments = $query->latest()->paginate(20);
+        $payments = $query->latest()->paginate(20)->withQueryString();
 
         return view('payments.index', compact('organization', 'payments'));
     }

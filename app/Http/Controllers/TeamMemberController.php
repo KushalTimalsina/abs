@@ -94,7 +94,16 @@ class TeamMemberController extends Controller
             ->withPivot('role', 'permissions', 'status', 'joined_at')
             ->firstOrFail();
         
-        return view('team.edit', compact('organization', 'user'));
+        // Get permissions config
+        $permissionsConfig = config('permissions.permissions');
+        
+        // Decode current permissions - ensure it's always an array
+        $permissionsJson = $user->pivot->permissions ?? '[]';
+        $currentPermissions = is_string($permissionsJson) 
+            ? json_decode($permissionsJson, true) ?? [] 
+            : (is_array($permissionsJson) ? $permissionsJson : []);
+        
+        return view('team.edit', compact('organization', 'user', 'permissionsConfig', 'currentPermissions'));
     }
 
     /**
@@ -134,7 +143,7 @@ class TeamMemberController extends Controller
         ]);
 
         return redirect()
-            ->route('team.index', $organization)
+            ->route('organization.team.index', $organization)
             ->with('success', 'Team member updated successfully');
     }
 
@@ -167,7 +176,7 @@ class TeamMemberController extends Controller
         ]);
 
         return redirect()
-            ->route('team.index', $organization)
+            ->route('organization.team.index', $organization)
             ->with('success', 'Team member removed successfully');
     }
 
@@ -190,7 +199,7 @@ class TeamMemberController extends Controller
         ]);
 
         return redirect()
-            ->route('team.index', $organization)
+            ->route('organization.team.index', $organization)
             ->with('success', 'Team member reactivated successfully');
     }
 }

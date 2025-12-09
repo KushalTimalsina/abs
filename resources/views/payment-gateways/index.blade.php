@@ -86,6 +86,29 @@
                 <div class="p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Add Payment Gateway</h3>
                     
+                    @if (session('success'))
+                        <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    @if ($errors->any())
+                        <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                            <p class="font-semibold mb-2">Please fix the following errors:</p>
+                            <ul class="list-disc list-inside">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    
                     <form method="POST" action="{{ route('organization.payment-gateways.store', $organization) }}" class="space-y-6" x-data="{ gateway: 'esewa' }">
                         @csrf
 

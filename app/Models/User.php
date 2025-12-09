@@ -183,5 +183,59 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $query->where('user_type', 'customer');
     }
+
+    /**
+     * Check if user has a specific permission in an organization
+     */
+    public function hasPermissionInOrganization($organizationId, string $permission): bool
+    {
+        // Get the user's role and permissions for this organization
+        $org = $this->organizations()
+            ->wherePivot('organization_id', $organizationId)
+            ->wherePivot('status', 'active')
+            ->first();
+        
+        if (!$org) return false;
+        
+        // Admins have all permissions
+        if ($org->pivot->role === 'admin') {
+            return true;
+        }
+        
+        // Decode permissions safely
+        $permissionsJson = $org->pivot->permissions;
+        
+        // Handle null or empty
+        if (empty($permissionsJson)) {
+            return false;
+        }
+        
+        // If already an array, use it
+        if (is_array($permissionsJson)) {
+            return in_array($permission, $permissionsJson);
+        }
+        
+        // If string, try to decode
+        if (is_string($permissionsJson)) {
+            $permissions = json_decode($permissionsJson, true);
+            
+            // If decode failed or not an array, return false
+            if (!is_array($permissions)) {
+                return false;
+            }
+            
+            return in_array($permission, $permissions);
+        }
+        
+        return false;
+    }
+
+    /**
+     * Send the password reset notification (queued)
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify((new \Illuminate\Auth\Notifications\ResetPassword($token))->onQueue('emails'));
+    }
 }
 

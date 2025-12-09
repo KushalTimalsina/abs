@@ -49,7 +49,8 @@ class BookingController extends Controller
             $query->where('staff_id', $request->staff_id);
         }
 
-        $bookings = $query->latest('booking_date')->paginate(20);
+        $perPage = $request->input('per_page', 20);
+        $bookings = $query->latest('booking_date')->paginate($perPage)->withQueryString();
         
         return view('bookings.index', compact('organization', 'bookings'));
     }

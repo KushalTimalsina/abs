@@ -129,8 +129,20 @@
                             </table>
                         </div>
 
-                        <div class="mt-4">
-                            {{ $bookings->links() }}
+                        <!-- Pagination and Per-Page Selector -->
+                        <div class="mt-4 flex items-center justify-between">
+                            <div class="text-sm text-gray-700 dark:text-gray-300">
+                                Showing {{ $bookings->firstItem() ?? 0 }} to {{ $bookings->lastItem() ?? 0 }} of {{ $bookings->total() }} results
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <form method="GET" action="{{ route('organization.bookings.index', $organization) }}" class="inline-block">
+                                    @foreach(request()->except('per_page') as $key => $value)
+                                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                    @endforeach
+                                    <x-per-page-selector :perPage="20" />
+                                </form>
+                                {{ $bookings->links() }}
+                            </div>
                         </div>
                     @else
                         <div class="text-center py-12">

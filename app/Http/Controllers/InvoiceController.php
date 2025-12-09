@@ -110,9 +110,10 @@ class InvoiceController extends Controller
             $query->whereIn('organization_id', $organizationIds);
         }
 
+        $perPage = $request->input('per_page', 20);
         $invoices = $query->with(['booking', 'subscriptionPayment', 'organization'])
             ->latest()
-            ->paginate(20);
+            ->paginate($perPage)->withQueryString();
 
         return view('invoices.index', compact('invoices'));
     }

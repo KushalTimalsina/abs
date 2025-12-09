@@ -4,12 +4,14 @@
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 Services - {{ $organization->name }}
             </h2>
+            @if(isAdmin() || userCan('create_service'))
             <a href="{{ route('organization.services.create', $organization) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
                 Add Service
             </a>
+            @endif
         </div>
     </x-slot>
 
@@ -62,12 +64,16 @@
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                                @if(isAdmin() || userCan('edit_service'))
                                                 <a href="{{ route('organization.services.edit', [$organization, $service]) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">Edit</a>
+                                                @endif
+                                                @if(isAdmin() || userCan('delete_service'))
                                                 <form action="{{ route('organization.services.destroy', [$organization, $service]) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this service?');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400">Delete</button>
                                                 </form>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -85,6 +91,7 @@
                             </svg>
                             <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No services</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new service.</p>
+                            @if(isAdmin() || userCan('create_service'))
                             <div class="mt-6">
                                 <a href="{{ route('organization.services.create', $organization) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,6 +100,7 @@
                                     Add Your First Service
                                 </a>
                             </div>
+                            @endif
                         </div>
                     @endif
                 </div>

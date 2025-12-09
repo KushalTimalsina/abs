@@ -12,11 +12,12 @@ class ServiceController extends Controller
     /**
      * Display a listing of services
      */
-    public function index(Organization $organization)
+    public function index(Request $request, Organization $organization)
     {
         $this->authorize('view', $organization);
         
-        $services = $organization->services()->latest()->paginate(15);
+        $perPage = $request->input('per_page', 15);
+        $services = $organization->services()->latest()->paginate($perPage)->withQueryString();
         
         return view('services.index', compact('organization', 'services'));
     }
@@ -27,6 +28,12 @@ class ServiceController extends Controller
     public function create(Organization $organization)
     {
         $this->authorize('manageServices', $organization);
+        
+        // Check if user has permission to create services
+        if (!Auth::user()->hasPermissionInOrganization($organization->id, 'create_service')) {
+            return redirect()->route('organization.services.index', $organization)
+                ->with('error', 'You do not have permission to create services.');
+        }
         
         return view('services.create', compact('organization'));
     }

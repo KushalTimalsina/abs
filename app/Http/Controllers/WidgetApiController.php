@@ -424,4 +424,49 @@ class WidgetApiController extends Controller
         return redirect()->route('widget.show', $organization->slug)
             ->with('payment_error', 'Payment was cancelled or failed. Please try again.');
     }
+
+    /**
+     * Submit bank transfer payment proof
+     */
+    public function submitBankTransfer(Request $request, Organization $organization, Booking $booking)
+    {
+        $validated = $request->validate([
+            'transaction_id' => ['required', 'string', 'max:255'],
+            'proof_image' => ['required', 'image', 'max:5120'], // 5MB max
+        ]);
+
+        try {
+            // Store the payment proof image
+            $proofPath = $request->file('proof_image')->store('payment-proofs', 'public');
+
+            // Create or update payment record
+            $payment = \App\Models\Payment::updateOrCreate(
+                ['booking_id' => $booking->id],
+                [
+                    'organization_id' => $organization->id,
+                    'amount' => $booking->service->price,
+                    'payment_method' => 'bank_transfer',
+                    'transaction_id' => $validated['transaction_id'],
+                    'status' => 'pending',
+                    'payment_proof' => $proofPath,
+                ]
+            );
+
+            // Update booking
+            $booking->update([
+                'payment_status' => 'unpaid',
+                'payment_method' => 'bank_transfer',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment proof submitted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

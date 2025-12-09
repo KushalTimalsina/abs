@@ -170,7 +170,8 @@ HTML;
 
         $widgetSettings = $organization->widgetSettings;
         $services = $organization->services()->where('is_active', true)->get();
+        $paymentGateways = $organization->paymentGateways()->where('is_active', true)->get();
         
-        return view('widget.iframe', compact('organization', 'widgetSettings', 'services'));
+        return view('widget.iframe', compact('organization', 'widgetSettings', 'services', 'paymentGateways'));
     }
 }

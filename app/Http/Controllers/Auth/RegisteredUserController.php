@@ -115,7 +115,7 @@ class RegisteredUserController extends Controller
             
             // Send welcome email only (subscription confirmation sent after payment verification)
             try {
-                Mail::to($user->email)->send(new WelcomeEmail($user));
+                Mail::to($user->email)->queue(new WelcomeEmail($user));
             } catch (\Exception $e) {
                 // Log the error but don't fail registration
                 \Log::error('Failed to send welcome email: ' . $e->getMessage());
