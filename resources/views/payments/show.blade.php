@@ -15,7 +15,7 @@
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <span class="text-gray-600 dark:text-gray-400">Service:</span>
-                            <span class="ml-2 font-medium text-gray-900 dark:text-gray-100">{{ $booking->service->name }}</span>
+                            <span class="ml-2 font-medium text-gray-900 dark:text-gray-100">{{ $booking->service?->name ?? 'N/A' }}</span>
                         </div>
                         <div>
                             <span class="text-gray-600 dark:text-gray-400">Date:</span>
@@ -27,11 +27,11 @@
                         </div>
                         <div>
                             <span class="text-gray-600 dark:text-gray-400">Duration:</span>
-                            <span class="ml-2 font-medium text-gray-900 dark:text-gray-100">{{ $booking->service->duration }} min</span>
+                            <span class="ml-2 font-medium text-gray-900 dark:text-gray-100">{{ $booking->service?->duration ?? 'N/A' }} min</span>
                         </div>
                         <div class="col-span-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                             <span class="text-gray-600 dark:text-gray-400">Total Amount:</span>
-                            <span class="ml-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Rs {{ number_format($booking->service->price, 2) }}</span>
+                            <span class="ml-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Rs {{ number_format($booking->service?->price ?? 0, 2) }}</span>
                         </div>
                     </div>
                 </div>
@@ -42,40 +42,66 @@
                 <div class="p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Select Payment Method</h3>
                     
-                    @if($availableGateways->count() > 0)
-                    <div class="space-y-3">
-                        @foreach($availableGateways as $gateway)
-                        <form method="POST" action="{{ route('payments.initiate', [$organization, $booking]) }}">
+                    <!-- Cash Payment Option -->
+                    <div class="mb-6">
+                        <form method="POST" action="{{ route('organization.payments.cash', [$organization, $booking]) }}">
                             @csrf
-                            <input type="hidden" name="gateway" value="{{ $gateway->gateway_name }}">
-                            <button type="submit" class="w-full flex items-center justify-between p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                            <button type="submit" class="w-full flex items-center justify-between p-4 border-2 border-green-500 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
                                 <div class="flex items-center">
-                                    <div class="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mr-4">
-                                        <span class="text-lg font-bold text-gray-700 dark:text-gray-300">
-                                            {{ strtoupper(substr($gateway->gateway_name, 0, 2)) }}
-                                        </span>
+                                    <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mr-4">
+                                        <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                        </svg>
                                     </div>
                                     <div class="text-left">
-                                        <div class="font-semibold text-gray-900 dark:text-gray-100">{{ ucfirst($gateway->gateway_name) }}</div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400">Pay with {{ ucfirst($gateway->gateway_name) }}</div>
+                                        <div class="font-semibold text-gray-900 dark:text-gray-100">Mark as Cash Received</div>
+                                        <div class="text-sm text-gray-600 dark:text-gray-400">Customer paid cash at venue</div>
                                     </div>
                                 </div>
                                 <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
                             </button>
                         </form>
-                        @endforeach
+                    </div>
+
+                    @if($availableGateways->count() > 0)
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6 mb-6">
+                        <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100 mb-3">Online Payment Options</h4>
+                        <div class="space-y-3">
+                            @foreach($availableGateways as $gateway)
+                            <form method="POST" action="{{ route('organization.payments.initiate', [$organization, $booking]) }}">
+                                @csrf
+                                <input type="hidden" name="gateway" value="{{ $gateway->gateway_name }}">
+                                <button type="submit" class="w-full flex items-center justify-between p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                                    <div class="flex items-center">
+                                        <div class="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mr-4">
+                                            <span class="text-lg font-bold text-gray-700 dark:text-gray-300">
+                                                {{ strtoupper(substr($gateway->gateway_name, 0, 2)) }}
+                                            </span>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="font-semibold text-gray-900 dark:text-gray-100">{{ ucfirst($gateway->gateway_name) }}</div>
+                                            <div class="text-sm text-gray-600 dark:text-gray-400">Pay with {{ ucfirst($gateway->gateway_name) }}</div>
+                                        </div>
+                                    </div>
+                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </button>
+                            </form>
+                            @endforeach
+                        </div>
                     </div>
                     @else
-                    <div class="text-center py-8 text-gray-500">
-                        <p>No online payment methods available.</p>
-                        <p class="text-sm mt-2">Please contact the organization for payment options.</p>
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6 text-center text-gray-500 dark:text-gray-400">
+                        <p class="text-sm">No online payment gateways configured</p>
+                        <p class="text-xs mt-1">Contact admin to set up payment gateways</p>
                     </div>
                     @endif
 
                     <div class="mt-6 text-center">
-                        <a href="{{ route('bookings.show', [$organization, $booking]) }}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+                        <a href="{{ route('organization.bookings.show', [$organization, $booking]) }}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
                             ← Back to Booking
                         </a>
                     </div>

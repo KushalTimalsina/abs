@@ -189,6 +189,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [\App\Http\Controllers\InvoiceController::class, 'index'])->name('index');
         Route::get('/{invoice}', [\App\Http\Controllers\InvoiceController::class, 'show'])->name('show');
         Route::get('/{invoice}/download', [\App\Http\Controllers\InvoiceController::class, 'download'])->name('download');
+        Route::post('/{invoice}/regenerate', [\App\Http\Controllers\InvoiceController::class, 'regenerate'])->name('regenerate');
+        Route::post('/{invoice}/email', [\App\Http\Controllers\InvoiceController::class, 'email'])->name('email');
         Route::post('/bookings/{booking}/generate', [\App\Http\Controllers\InvoiceController::class, 'generateForBooking'])->name('generate.booking');
         Route::post('/subscriptions/{subscriptionPayment}/generate', [\App\Http\Controllers\InvoiceController::class, 'generateForSubscription'])->name('generate.subscription');
     });
@@ -212,10 +214,13 @@ Route::get('/widget/{slug}', [\App\Http\Controllers\WidgetController::class, 'sh
 Route::get('/api/organizations/{organization}/services/{service}/available-slots', [\App\Http\Controllers\BookingController::class, 'getAvailableSlots'])->name('api.available-slots');
 
 // Widget API routes (public)
-Route::prefix('api/widget/{organization}')->name('api.widget.')->group(function () {
+Route::prefix('api/widget/{organization}')->name('api.widget.')->scopeBindings()->middleware(\App\Http\Middleware\HandleWidgetCors::class)->group(function () {
     Route::get('/services', [\App\Http\Controllers\WidgetApiController::class, 'getServices'])->name('services');
     Route::get('/services/{service}/slots', [\App\Http\Controllers\WidgetApiController::class, 'getAvailableSlots'])->name('slots');
     Route::post('/bookings', [\App\Http\Controllers\WidgetApiController::class, 'createBooking'])->name('bookings');
+    Route::post('/bookings/{booking}/payment', [\App\Http\Controllers\WidgetApiController::class, 'initiatePayment'])->name('payment.initiate');
+    Route::get('/bookings/{booking}/payment/{payment}/success', [\App\Http\Controllers\WidgetApiController::class, 'paymentSuccess'])->name('payment.success');
+    Route::get('/bookings/{booking}/payment/{payment}/failure', [\App\Http\Controllers\WidgetApiController::class, 'paymentFailure'])->name('payment.failure');
 });
 
 // Public Booking Routes (Customer-facing)

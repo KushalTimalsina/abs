@@ -14,9 +14,12 @@ class InvoiceService
      */
     public function generateBookingInvoice(Booking $booking, Payment $payment): Invoice
     {
+        // Get payment method from payment or fallback to booking
+        $paymentMethod = $payment->payment_method ?? $booking->payment_method ?? 'cash';
+        
         // Determine payment status based on payment method
-        $status = $this->determinePaymentStatus($payment->gateway_type);
-        $paidBy = $this->getPaidByText($payment->gateway_type);
+        $status = $this->determinePaymentStatus($paymentMethod, $payment->status);
+        $paidBy = $this->getPaidByText($paymentMethod);
         
         $invoice = Invoice::create([
             'invoice_type' => 'booking',
@@ -27,7 +30,7 @@ class InvoiceService
             'tax' => 0, // Can be calculated if needed
             'discount' => 0,
             'total' => $payment->amount,
-            'payment_method' => $payment->gateway_type,
+            'payment_method' => $paymentMethod,
             'paid_by' => $paidBy,
             'paid_at' => $status === 'paid' ? now() : null,
             'status' => $status,
@@ -68,13 +71,17 @@ class InvoiceService
      * Determine payment status based on payment method
      * 
      * Online payments (esewa, khalti, stripe) and verified bank transfers are marked as paid
-     * Cash payments are marked as unpaid
+     * Cash payments status depends on the payment record status
      */
-    private function determinePaymentStatus(string $paymentMethod): string
+    private function determinePaymentStatus(?string $paymentMethod, string $paymentStatus = 'completed'): string
     {
+        if (!$paymentMethod) {
+            return 'unpaid';
+        }
+        
         return match($paymentMethod) {
             'esewa', 'khalti', 'stripe', 'bank_transfer' => 'paid',
-            'cash' => 'unpaid',
+            'cash' => $paymentStatus === 'completed' ? 'paid' : 'unpaid',
             default => 'unpaid',
         };
     }
@@ -82,8 +89,12 @@ class InvoiceService
     /**
      * Get "Paid By" text for invoice
      */
-    private function getPaidByText(string $paymentMethod): string
+    private function getPaidByText(?string $paymentMethod): string
     {
+        if (!$paymentMethod) {
+            return 'N/A';
+        }
+        
         return match($paymentMethod) {
             'esewa' => 'eSewa',
             'khalti' => 'Khalti',

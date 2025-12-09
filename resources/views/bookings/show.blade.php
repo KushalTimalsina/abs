@@ -92,7 +92,7 @@
                     <!-- Service Information -->
                     <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                         <div class="p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Service Details</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Booking Details</h3>
                             
                             @if($booking->service)
                                 <div class="space-y-3">
@@ -114,7 +114,32 @@
                                     </div>
                                 </div>
                             @else
-                                <p class="text-gray-500 dark:text-gray-400">No service information available</p>
+                                <div class="space-y-3">
+                                    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                                        <p class="text-sm text-blue-800 dark:text-blue-200">
+                                            <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                            </svg>
+                                            This booking was created through the widget
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Booking Type</p>
+                                        <p class="font-medium text-gray-900 dark:text-white">Widget Booking</p>
+                                    </div>
+                                    @if($booking->slot)
+                                    <div>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Time Slot</p>
+                                        <p class="font-medium text-gray-900 dark:text-white">{{ $booking->slot->start_time->format('h:i A') }} - {{ $booking->slot->end_time->format('h:i A') }}</p>
+                                    </div>
+                                    @endif
+                                    @if($booking->staff)
+                                    <div>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Assigned Staff</p>
+                                        <p class="font-medium text-gray-900 dark:text-white">{{ $booking->staff->name }}</p>
+                                    </div>
+                                    @endif
+                                </div>
                             @endif
                         </div>
                     </div>

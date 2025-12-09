@@ -147,7 +147,7 @@
                                             <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
                                         </form>
                                         @else
-                                        <a href="{{ route('organization.bookings.show', [$organization, $slot->booking_id]) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">
+                                        <a href="{{ route('organization.bookings.show', [$organization, $slot->booking]) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">
                                             View Booking
                                         </a>
                                         @endif

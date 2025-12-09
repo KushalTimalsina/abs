@@ -36,10 +36,10 @@
         <div>
             <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">Bill To</h3>
             @if($invoice->isBookingInvoice())
-                <p class="font-semibold text-gray-900 dark:text-white">{{ $invoice->booking->customer->name }}</p>
-                <p class="text-gray-600 dark:text-gray-400">{{ $invoice->booking->customer->email }}</p>
-                @if($invoice->booking->customer->phone)
-                    <p class="text-gray-600 dark:text-gray-400">{{ $invoice->booking->customer->phone }}</p>
+                <p class="font-semibold text-gray-900 dark:text-white">{{ $invoice->booking->customer_name }}</p>
+                <p class="text-gray-600 dark:text-gray-400">{{ $invoice->booking->customer_email }}</p>
+                @if($invoice->booking->customer_phone)
+                    <p class="text-gray-600 dark:text-gray-400">{{ $invoice->booking->customer_phone }}</p>
                 @endif
             @else
                 <p class="font-semibold text-gray-900 dark:text-white">{{ $invoice->subscriptionPayment->organization->name }}</p>
@@ -165,20 +165,48 @@
 
 <style>
     @media print {
-        body * {
-            visibility: hidden;
+        @page {
+            size: A4;
+            margin: 10mm 12mm;
         }
-        #invoice, #invoice * {
-            visibility: visible;
+        
+        /* Hide everything except invoice */
+        header, nav, .no-print {
+            display: none !important;
         }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: white;
+        }
+        
         #invoice {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-        }
-        .print\:shadow-none {
             box-shadow: none !important;
+            border-radius: 0 !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* Reduce spacing in print */
+        #invoice .p-6, #invoice .p-8 {
+            padding: 8px !important;
+        }
+        
+        #invoice .mb-4, #invoice .mb-6, #invoice .mb-8 {
+            margin-bottom: 8px !important;
+        }
+        
+        #invoice .py-12 {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        
+        /* Force light colors for print */
+        * {
+            color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
         }
     }
 </style>

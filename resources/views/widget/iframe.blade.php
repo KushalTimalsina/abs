@@ -105,10 +105,16 @@
             <!-- Slots Grid -->
             <div x-show="!loading && slots.length > 0" class="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <template x-for="slot in slots" :key="slot.id">
-                    <button @click="selectSlot(slot)"
-                            class="p-4 border-2 border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-colors">
-                        <div class="font-semibold text-gray-900" x-text="slot.start_time"></div>
-                        <div class="text-sm text-gray-600" x-text="slot.staff"></div>
+                    <button @click="slot.available ? selectSlot(slot) : null"
+                            :disabled="!slot.available"
+                            :class="{
+                                'p-4 border-2 rounded-lg text-center transition-colors': true,
+                                'border-gray-200 hover:border-blue-500 hover:bg-blue-50 cursor-pointer': slot.available,
+                                'border-gray-300 bg-gray-100 opacity-50 cursor-not-allowed': !slot.available
+                            }">
+                        <div class="font-semibold" :class="slot.available ? 'text-gray-900' : 'text-gray-500'" x-text="slot.start_time"></div>
+                        <div class="text-sm" :class="slot.available ? 'text-gray-600' : 'text-gray-400'" x-text="slot.staff"></div>
+                        <div x-show="!slot.available" class="text-xs text-red-500 mt-1">Past</div>
                     </button>
                 </template>
             </div>
@@ -183,6 +189,47 @@
             </form>
         </div>
 
+        <!-- Payment Selection -->
+        <div x-show="step === 'payment'" class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Select Payment Method</h2>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p class="text-sm text-blue-800">
+                    <strong>Amount to Pay:</strong> NPR <span x-text="selectedService.price"></span>
+                </p>
+            </div>
+
+            <div class="space-y-3 mb-6">
+                <!-- Cash Payment -->
+                <button @click="selectPaymentMethod('cash')" 
+                        class="w-full flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-colors">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="text-left">
+                            <div class="font-semibold text-gray-900">Pay Cash</div>
+                            <div class="text-sm text-gray-600">Pay at the venue</div>
+                        </div>
+                    </div>
+                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+
+                <!-- Online Payment Options (if available) -->
+                <div class="text-center py-4 text-gray-500 text-sm">
+                    <p>Online payment options coming soon</p>
+                </div>
+            </div>
+
+            <button @click="step = 'booking'" class="w-full text-center text-gray-600 hover:text-gray-900">
+                ← Back to Booking Details
+            </button>
+        </div>
+
         <!-- Confirmation -->
         <div x-show="step === 'confirmation'" class="bg-white rounded-lg shadow-sm p-6">
             <div class="text-center">
@@ -235,6 +282,7 @@
                 errors: {},
                 submitError: '',
                 bookingResult: {},
+                bookingId: null,
 
                 selectService(id, name, duration, price) {
                     this.selectedService = { id, name, duration, price };
@@ -250,7 +298,7 @@
                     this.slots = [];
                     
                     try {
-                        const response = await fetch(`/api/widget/{{ $organization->id }}/services/${this.selectedService.id}/slots?date=${this.selectedDate}`);
+                        const response = await fetch(`{{ config('app.url') }}/api/widget/{{ $organization->slug }}/services/${this.selectedService.id}/slots?date=${this.selectedDate}`);
                         const data = await response.json();
                         
                         if (data.success) {
@@ -274,13 +322,14 @@
                     this.submitError = '';
 
                     try {
-                        const response = await fetch('/api/widget/{{ $organization->id }}/bookings', {
+                        const response = await fetch('{{ config('app.url') }}/api/widget/{{ $organization->slug }}/bookings', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                             },
                             body: JSON.stringify({
+                                service_id: this.selectedService.id,
                                 slot_id: this.selectedSlot.id,
                                 customer_name: this.formData.customer_name,
                                 customer_email: this.formData.customer_email,
@@ -293,7 +342,8 @@
 
                         if (data.success) {
                             this.bookingResult = data.booking;
-                            this.step = 'confirmation';
+                            this.bookingId = data.booking.id;
+                            this.step = 'payment';
                         } else {
                             if (data.errors) {
                                 this.errors = data.errors;
@@ -306,6 +356,35 @@
                         this.submitError = 'An error occurred. Please try again.';
                     } finally {
                         this.submitting = false;
+                    }
+                },
+
+                async selectPaymentMethod(gateway) {
+                    if (gateway === 'cash') {
+                        // For cash payment, just move to confirmation
+                        this.step = 'confirmation';
+                    } else {
+                        // For online payment, call payment API
+                        try {
+                            const response = await fetch(`/api/widget/{{ $organization->slug }}/bookings/${this.bookingId}/payment`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                },
+                                body: JSON.stringify({ gateway })
+                            });
+
+                            const data = await response.json();
+
+                            if (data.success && data.payment_url) {
+                                // Redirect to payment gateway
+                                window.location.href = data.payment_url;
+                            }
+                        } catch (error) {
+                            console.error('Payment error:', error);
+                            alert('Payment initiation failed. Please try again.');
+                        }
                     }
                 },
 
@@ -329,6 +408,7 @@
                     this.errors = {};
                     this.submitError = '';
                     this.bookingResult = {};
+                    this.bookingId = null;
                 }
             }
         }

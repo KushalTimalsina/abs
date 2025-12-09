@@ -116,4 +116,66 @@ class InvoiceController extends Controller
 
         return view('invoices.index', compact('invoices'));
     }
+
+    /**
+     * Regenerate invoice with current payment information
+     */
+    public function regenerate(Invoice $invoice)
+    {
+        // Get the payment for this invoice
+        $payment = $invoice->payment;
+        
+        if (!$payment) {
+            return redirect()->back()->with('error', 'No payment found for this invoice');
+        }
+
+        // Update invoice with current payment information
+        $invoice->update([
+            'payment_method' => $payment->payment_method,
+            'paid_by' => match($payment->payment_method) {
+                'esewa' => 'eSewa',
+                'khalti' => 'Khalti',
+                'stripe' => 'Stripe',
+                'bank_transfer' => 'Bank Transfer',
+                'cash' => 'Cash',
+                default => ucfirst($payment->payment_method),
+            },
+            'status' => $payment->status === 'completed' ? 'paid' : 'unpaid',
+            'paid_at' => $payment->status === 'completed' ? ($invoice->paid_at ?? now()) : null,
+        ]);
+
+        return redirect()->route('invoices.show', $invoice)
+            ->with('success', 'Invoice regenerated successfully with current payment information');
+    }
+
+    /**
+     * Email invoice to customer
+     */
+    public function email(Invoice $invoice)
+    {
+        try {
+            // Get customer email based on invoice type
+            if ($invoice->isBookingInvoice()) {
+                $customerEmail = $invoice->booking->customer_email;
+                $customerName = $invoice->booking->customer_name;
+            } else {
+                $customerEmail = $invoice->subscriptionPayment->organization->email;
+                $customerName = $invoice->subscriptionPayment->organization->name;
+            }
+
+            if (!$customerEmail) {
+                return redirect()->back()->with('error', 'No email address found for this invoice');
+            }
+
+            // Dispatch job to send email in background
+            \App\Jobs\SendInvoiceEmail::dispatch($invoice, $customerEmail, $customerName);
+
+            return redirect()->back()
+                ->with('success', 'Invoice is being sent to ' . $customerEmail . '. You will be notified once it\'s delivered.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Failed to queue invoice email: ' . $e->getMessage());
+        }
+    }
 }

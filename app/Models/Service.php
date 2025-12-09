@@ -56,4 +56,23 @@ class Service extends Model
     {
         return $query->where('is_active', true);
     }
+
+    /**
+     * Resolve route binding scoped to organization
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        // Get the organization from the route
+        $organization = request()->route('organization');
+        
+        // If organization is present, scope the service to it
+        if ($organization) {
+            return $this->where('organization_id', $organization->id)
+                        ->where($field ?? 'id', $value)
+                        ->firstOrFail();
+        }
+        
+        // Fallback to default behavior
+        return parent::resolveRouteBinding($value, $field);
+    }
 }

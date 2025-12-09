@@ -4,21 +4,27 @@
     <meta charset="utf-8">
     <title>Invoice {{ $invoice->invoice_number }}</title>
     <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
         body {
             font-family: 'DejaVu Sans', sans-serif;
-            font-size: 14px;
+            font-size: 11px;
             color: #333;
-            line-height: 1.6;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
         }
         .invoice {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
         }
         .header {
             border-bottom: 2px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
         }
         .header-flex {
             display: table;
@@ -27,40 +33,43 @@
         .header-left, .header-right {
             display: table-cell;
             width: 50%;
+            vertical-align: top;
         }
         .header-right {
             text-align: right;
         }
         h1 {
-            font-size: 32px;
-            margin: 0 0 10px 0;
+            font-size: 24px;
+            margin: 0 0 5px 0;
         }
         .section-title {
-            font-size: 12px;
+            font-size: 10px;
             color: #666;
             text-transform: uppercase;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
+            font-weight: bold;
         }
         .grid-2 {
             display: table;
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
         }
         .grid-col {
             display: table-cell;
             width: 50%;
-            padding-right: 20px;
+            padding-right: 15px;
+            vertical-align: top;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
         }
         thead th {
             border-bottom: 2px solid #333;
-            padding: 10px;
+            padding: 6px 8px;
             text-align: left;
-            font-size: 12px;
+            font-size: 10px;
             text-transform: uppercase;
         }
         thead th:last-child,
@@ -68,18 +77,19 @@
             text-align: right;
         }
         tbody td {
-            padding: 15px 10px;
+            padding: 8px;
             border-bottom: 1px solid #ddd;
+            font-size: 11px;
         }
         .totals {
-            width: 300px;
+            width: 250px;
             margin-left: auto;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
         }
         .totals-row {
             display: table;
             width: 100%;
-            padding: 8px 0;
+            padding: 4px 0;
         }
         .totals-label, .totals-value {
             display: table-cell;
@@ -90,23 +100,25 @@
         .totals-total {
             border-top: 2px solid #333;
             font-weight: bold;
-            font-size: 16px;
-            padding-top: 10px;
+            font-size: 14px;
+            padding-top: 6px;
+            margin-top: 4px;
         }
         .payment-info {
             background: #f5f5f5;
-            padding: 20px;
-            margin-bottom: 30px;
+            padding: 12px;
+            margin-bottom: 15px;
         }
         .payment-info h3 {
-            margin-top: 0;
+            margin: 0 0 8px 0;
+            font-size: 13px;
         }
         .status-badge {
             display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
+            padding: 3px 10px;
+            border-radius: 12px;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 10px;
         }
         .status-paid {
             background: #d4edda;
@@ -118,10 +130,11 @@
         }
         .footer {
             border-top: 1px solid #ddd;
-            padding-top: 20px;
+            padding-top: 10px;
             text-align: center;
-            font-size: 12px;
+            font-size: 10px;
             color: #666;
+            margin-top: 15px;
         }
     </style>
 </head>
@@ -161,10 +174,10 @@
             <div class="grid-col">
                 <p class="section-title">Bill To</p>
                 @if($invoice->isBookingInvoice())
-                    <p style="font-weight: bold;">{{ $invoice->booking->customer->name }}</p>
-                    <p>{{ $invoice->booking->customer->email }}</p>
-                    @if($invoice->booking->customer->phone)
-                        <p>{{ $invoice->booking->customer->phone }}</p>
+                    <p style="font-weight: bold;">{{ $invoice->booking->customer_name }}</p>
+                    <p>{{ $invoice->booking->customer_email }}</p>
+                    @if($invoice->booking->customer_phone)
+                        <p>{{ $invoice->booking->customer_phone }}</p>
                     @endif
                 @else
                     <p style="font-weight: bold;">{{ $invoice->subscriptionPayment->organization->name }}</p>

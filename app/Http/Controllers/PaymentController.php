@@ -32,9 +32,12 @@ class PaymentController extends Controller
 
         if ($booking->payment_status === 'paid') {
             return redirect()
-                ->route('bookings.show', [$organization, $booking])
+                ->route('organization.bookings.show', [$organization, $booking])
                 ->with('info', 'This booking has already been paid');
         }
+
+        // Eager load relationships to avoid null errors
+        $booking->load(['customer', 'service', 'staff', 'slot']);
 
         $availableGateways = $organization->paymentGateways()
             ->where('is_active', true)
@@ -171,28 +174,35 @@ class PaymentController extends Controller
      */
     public function processCash(Organization $organization, Booking $booking)
     {
-        $this->authorize('view', $organization);
-
         if ($booking->organization_id !== $organization->id) {
             abort(404);
         }
 
         if ($booking->payment_status === 'paid') {
             return redirect()
-                ->back()
+                ->route('organization.bookings.show', [$organization, $booking])
                 ->with('info', 'This booking has already been paid');
         }
 
         try {
-            $payment = $this->paymentService->processCashPayment($booking);
+            // Create payment record
+            $payment = Payment::create([
+                'organization_id' => $organization->id,
+                'booking_id' => $booking->id,
+                'amount' => $booking->service?->price ?? 0,
+                'payment_method' => 'cash',
+                'status' => 'completed',
+                'currency' => 'NPR',
+                'transaction_id' => 'CASH-' . time(),
+            ]);
 
-            // Auto-generate invoice for cash payment (will be marked as unpaid)
-            if (!$this->invoiceService->hasBookingInvoice($booking)) {
-                $this->invoiceService->generateBookingInvoice($booking, $payment);
-            }
+            // Update booking payment status
+            $booking->update([
+                'payment_status' => 'paid',
+            ]);
 
             return redirect()
-                ->route('bookings.show', [$organization, $booking])
+                ->route('organization.bookings.show', [$organization, $booking])
                 ->with('success', 'Cash payment recorded successfully');
                 
         } catch (\Exception $e) {

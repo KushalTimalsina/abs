@@ -6,9 +6,11 @@ use App\Models\Organization;
 use App\Models\Service;
 use App\Models\Slot;
 use App\Models\Booking;
+use App\Models\User;
 use App\Models\WidgetAnalytics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class WidgetApiController extends Controller
@@ -40,7 +42,7 @@ class WidgetApiController extends Controller
     /**
      * Get available slots for a service
      */
-    public function getAvailableSlots(Request $request, Organization $organization, Service $service)
+    public function getAvailableSlots(Request $request, Organization $organization, $serviceId)
     {
         $validator = Validator::make($request->all(), [
             'date' => 'required|date|after_or_equal:today',
@@ -53,27 +55,47 @@ class WidgetApiController extends Controller
             ], 422);
         }
 
+        // Manually fetch and validate the service belongs to the organization
+        $service = Service::where('id', $serviceId)
+            ->where('organization_id', $organization->id)
+            ->first();
+            
+        if (!$service) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Service not found',
+            ], 404);
+        }
+
         $date = Carbon::parse($request->date);
+        $now = Carbon::now();
         
+        // Note: Slots table doesn't have service_id, slots are linked via shifts
+        // We need to get slots for the organization on the specified date
         $slots = Slot::where('organization_id', $organization->id)
-            ->where('service_id', $service->id)
-            ->where('slot_date', $date)
-            ->where('is_available', true)
-            ->where('is_blocked', false)
+            ->whereDate('date', $date)
+            ->where('status', 'available')
             ->whereDoesntHave('booking', function($q) {
                 $q->whereIn('status', ['pending', 'confirmed']);
             })
             ->with('staff:id,name')
             ->orderBy('start_time')
             ->get()
-            ->map(function($slot) {
+            ->map(function($slot) use ($now, $date) {
+                // Check if this slot is in the past
+                // Format start_time properly since it's already a Carbon instance
+                $slotDateTime = Carbon::parse($date->format('Y-m-d') . ' ' . $slot->start_time->format('H:i:s'));
+                $isPast = $slotDateTime->lt($now);
+                
                 return [
                     'id' => $slot->id,
                     'start_time' => $slot->start_time->format('H:i'),
                     'end_time' => $slot->end_time->format('H:i'),
-                    'staff' => $slot->staff->name,
+                    'staff' => $slot->staff ? $slot->staff->name : 'Any Staff',
+                    'available' => !$isPast, // Mark past slots as unavailable
                 ];
             });
+
 
         return response()->json([
             'success' => true,
@@ -88,6 +110,7 @@ class WidgetApiController extends Controller
     public function createBooking(Request $request, Organization $organization)
     {
         $validator = Validator::make($request->all(), [
+            'service_id' => 'required|exists:services,id',
             'slot_id' => 'required|exists:slots,id',
             'customer_name' => 'required|string|max:255',
             'customer_email' => 'required|email|max:255',
@@ -102,7 +125,7 @@ class WidgetApiController extends Controller
             ], 422);
         }
 
-        $slot = Slot::with('service')->findOrFail($request->slot_id);
+        $slot = Slot::with('shift')->findOrFail($request->slot_id);
 
         // Verify slot belongs to organization
         if ($slot->organization_id !== $organization->id) {
@@ -113,7 +136,7 @@ class WidgetApiController extends Controller
         }
 
         // Check if slot is still available
-        if (!$slot->is_available || $slot->is_blocked) {
+        if ($slot->status !== 'available') {
             return response()->json([
                 'success' => false,
                 'message' => 'This slot is no longer available',
@@ -128,42 +151,65 @@ class WidgetApiController extends Controller
             ], 400);
         }
 
-        // Create booking
-        $booking = Booking::create([
-            'organization_id' => $organization->id,
-            'service_id' => $slot->service_id,
-            'slot_id' => $slot->id,
-            'staff_id' => $slot->staff_id,
-            'customer_name' => $request->customer_name,
-            'customer_email' => $request->customer_email,
-            'customer_phone' => $request->customer_phone,
-            'booking_date' => $slot->slot_date,
-            'start_time' => $slot->start_time,
-            'end_time' => $slot->end_time,
-            'status' => 'pending',
-            'payment_status' => 'pending',
-            'notes' => $request->notes,
-            'booking_number' => 'BK-' . strtoupper(uniqid()),
-        ]);
+        // Get or create customer user
+        $customer = User::firstOrCreate(
+            ['email' => $request->customer_email],
+            [
+                'name' => $request->customer_name,
+                'phone' => $request->customer_phone,
+                'password' => bcrypt(Str::random(16)),
+                'user_type' => 'customer',
+            ]
+        );
 
-        // Mark slot as unavailable
-        $slot->update(['is_available' => false]);
+        try {
+            // Create booking
+            $booking = Booking::create([
+                'organization_id' => $organization->id,
+                'service_id' => $request->service_id, // Store service ID from widget
+                'slot_id' => $slot->id,
+                'customer_id' => $customer->id,
+                'staff_id' => $slot->assigned_staff_id,
+                'customer_name' => $request->customer_name,
+                'customer_email' => $request->customer_email,
+                'customer_phone' => $request->customer_phone,
+                'booking_date' => $slot->date,
+                'start_time' => $slot->start_time,
+                'end_time' => $slot->end_time,
+                'status' => 'pending',
+                'payment_status' => 'unpaid',
+                'customer_notes' => $request->notes,
+                'booking_number' => 'BK-' . strtoupper(uniqid()),
+            ]);
 
-        // Track booking conversion
-        $this->trackAnalytics($organization, 'booking');
+            // Note: Don't change slot status to 'booked' here - keep it as 'available'
+            // The slot is linked to the booking via the booking relationship
+            // $slot->update(['status' => 'booked']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Booking created successfully',
-            'booking' => [
-                'id' => $booking->id,
-                'booking_number' => $booking->booking_number,
-                'service' => $slot->service->name,
-                'date' => $booking->booking_date->format('l, F d, Y'),
-                'time' => $booking->start_time->format('h:i A'),
-                'status' => $booking->status,
-            ],
-        ]);
+            // Track booking conversion
+            $this->trackAnalytics($organization, 'booking');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking created successfully',
+                'booking' => [
+                    'id' => $booking->id,
+                    'booking_number' => $booking->booking_number,
+                    'service' => $organization->name . ' Booking',
+                    'date' => $booking->booking_date->format('l, F d, Y'),
+                    'time' => $booking->start_time . ' - ' . $booking->end_time,
+                    'status' => $booking->status,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking creation failed: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => basename($e->getFile()),
+            ], 500);
+        }
     }
 
     /**
@@ -171,13 +217,27 @@ class WidgetApiController extends Controller
      */
     protected function trackAnalytics(Organization $organization, string $eventType)
     {
-        WidgetAnalytics::create([
-            'organization_id' => $organization->id,
-            'event_type' => $eventType,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'referrer' => request()->header('referer'),
-        ]);
+        // Get or create widget settings for the organization
+        $widgetSettings = $organization->widgetSettings;
+        
+        if (!$widgetSettings) {
+            // Skip analytics if no widget settings exist
+            return;
+        }
+        
+        WidgetAnalytics::updateOrCreate(
+            [
+                'widget_settings_id' => $widgetSettings->id,
+                'organization_id' => $organization->id,
+                'date' => now()->toDateString(),
+            ],
+            [
+                'event_type' => $eventType,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'referrer' => request()->header('referer'),
+            ]
+        );
     }
 
     /**
@@ -234,5 +294,134 @@ class WidgetApiController extends Controller
             'stats' => $stats,
             'daily_stats' => $dailyStats,
         ]);
+    }
+
+    /**
+     * Initiate payment for widget booking
+     */
+    public function initiatePayment(Request $request, Organization $organization, Booking $booking)
+    {
+        // Verify booking belongs to organization
+        if ($booking->organization_id !== $organization->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid booking',
+            ], 403);
+        }
+
+        // Check if already paid
+        if ($booking->payment_status === 'paid') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This booking has already been paid',
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'gateway' => 'required|in:esewa,khalti,stripe,cash',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            // For cash payment, just mark as pending payment
+            if ($request->gateway === 'cash') {
+                return response()->json([
+                    'success' => true,
+                    'payment_type' => 'cash',
+                    'message' => 'Please pay cash at the venue',
+                ]);
+            }
+
+            // Get payment gateway settings
+            $gateway = $organization->paymentGateways()
+                ->where('gateway_name', $request->gateway)
+                ->where('is_active', true)
+                ->first();
+
+            if (!$gateway) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment gateway not available',
+                ], 400);
+            }
+
+            // Calculate amount (use service price or default)
+            $amount = $booking->service?->price ?? 1000; // Default amount if no service
+
+            // Create payment record
+            $payment = \App\Models\Payment::create([
+                'organization_id' => $organization->id,
+                'booking_id' => $booking->id,
+                'amount' => $amount,
+                'payment_method' => $request->gateway,
+                'status' => 'pending',
+                'currency' => 'NPR',
+            ]);
+
+            // Generate payment URL
+            $successUrl = route('api.widget.payment.success', [$organization, $booking, $payment]);
+            $failureUrl = route('api.widget.payment.failure', [$organization, $booking, $payment]);
+
+            return response()->json([
+                'success' => true,
+                'payment_type' => 'redirect',
+                'payment_url' => $successUrl . '?test=true', // Test URL for now
+                'payment_id' => $payment->id,
+                'amount' => $amount,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment initiation failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle payment success callback
+     */
+    public function paymentSuccess(Organization $organization, Booking $booking, \App\Models\Payment $payment)
+    {
+        try {
+            // Update payment status
+            $payment->update([
+                'status' => 'completed',
+                'transaction_id' => request('transaction_id', 'TEST-' . time()),
+            ]);
+
+            // Update booking status
+            $booking->update([
+                'status' => 'confirmed',
+                'payment_status' => 'paid',
+            ]);
+
+            // Redirect to widget with success message
+            return redirect()->route('widget.show', $organization->slug)
+                ->with('payment_success', 'Payment successful! Your booking is confirmed.');
+
+        } catch (\Exception $e) {
+            return redirect()->route('widget.show', $organization->slug)
+                ->with('payment_error', 'Payment verification failed');
+        }
+    }
+
+    /**
+     * Handle payment failure callback
+     */
+    public function paymentFailure(Organization $organization, Booking $booking, \App\Models\Payment $payment)
+    {
+        // Update payment status
+        $payment->update(['status' => 'failed']);
+
+        // Redirect to widget with error message
+        return redirect()->route('widget.show', $organization->slug)
+            ->with('payment_error', 'Payment was cancelled or failed. Please try again.');
     }
 }

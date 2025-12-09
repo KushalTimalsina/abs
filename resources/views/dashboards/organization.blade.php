@@ -124,7 +124,7 @@
                 <div class="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
                     <div class="flex-1">
                         <p class="font-medium text-gray-900 dark:text-white">{{ $booking->customer_name }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ $booking->service->name }} • {{ $booking->booking_date->format('M d, Y') }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ $booking->service?->name ?? 'N/A' }} • {{ $booking->booking_date->format('M d, Y') }}</p>
                     </div>
                     <span class="px-2 py-1 text-xs font-medium rounded-full {{ $booking->status === 'confirmed' ? 'bg-green-100 text-green-800' : ($booking->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
                         {{ ucfirst($booking->status) }}
@@ -183,7 +183,7 @@
                     <div class="flex-1">
                         <p class="font-medium text-gray-900 dark:text-white">{{ $booking->customer_name }}</p>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                            {{ $booking->service->name }} • 
+                            {{ $booking->service?->name ?? 'N/A' }} • 
                             {{ $booking->booking_date->format('M d, Y') }} at {{ $booking->start_time->format('h:i A') }}
                         </p>
                     </div>
@@ -208,7 +208,7 @@
                     <div class="flex-1">
                         <p class="font-medium text-gray-900 dark:text-white">{{ $booking->start_time->format('h:i A') }} - {{ $booking->customer_name }}</p>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                            {{ $booking->service->name }} with {{ $booking->staff->name }}
+                            {{ $booking->service?->name ?? 'N/A' }} with {{ $booking->staff?->name ?? 'Unassigned' }}
                         </p>
                     </div>
                     <span class="px-2 py-1 text-xs font-medium rounded-full {{ $booking->status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">

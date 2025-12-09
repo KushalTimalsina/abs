@@ -18,6 +18,9 @@ class Booking extends Model
         'slot_id',
         'customer_id',
         'staff_id',
+        'customer_name',
+        'customer_email',
+        'customer_phone',
         'booking_date',
         'start_time',
         'end_time',
@@ -29,6 +32,8 @@ class Booking extends Model
 
     protected $casts = [
         'booking_date' => 'date',
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
     ];
 
     protected static function boot()

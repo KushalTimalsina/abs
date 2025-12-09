@@ -105,94 +105,76 @@ class BookingController extends Controller
      * Store a new booking
      */
     public function store(Request $request, Organization $organization)
-    {
-        $validated = $request->validate([
-            'service_id' => ['required', 'exists:services,id'],
-            'slot_id' => ['required', 'exists:slots,id'],
-            'customer_name' => ['required', 'string', 'max:255'],
-            'customer_email' => ['required', 'email', 'max:255'],
-            'customer_phone' => ['required', 'string', 'max:20'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-            'payment_method' => ['required', 'in:cash,online'],
+{
+    $validated = $request->validate([
+        'service_id' => ['required', 'exists:services,id'],
+        'customer_name' => ['required', 'string', 'max:255'],
+        'customer_email' => ['required', 'email', 'max:255'],
+        'customer_phone' => ['required', 'string', 'max:20'],
+        'booking_date' => ['required', 'date', 'after_or_equal:today'],
+        'start_time' => ['required'],
+        'notes' => ['nullable', 'string', 'max:1000'],
+    ]);
+
+    DB::beginTransaction();
+    
+    try {
+        $service = Service::findOrFail($validated['service_id']);
+
+        // Verify service belongs to organization
+        if ($service->organization_id !== $organization->id) {
+            throw new \Exception('Invalid service');
+        }
+
+        // Find or create customer
+        $customer = User::firstOrCreate(
+            ['email' => $validated['customer_email']],
+            [
+                'name' => $validated['customer_name'],
+                'phone' => $validated['customer_phone'],
+                'user_type' => 'customer',
+                'password' => bcrypt(str()->random(16)), // Random password
+            ]
+        );
+
+        // Calculate end time based on service duration
+        $startDateTime = \Carbon\Carbon::parse($validated['booking_date'] . ' ' . $validated['start_time']);
+        $endDateTime = $startDateTime->copy()->addMinutes($service->duration);
+
+        // Create booking
+        $booking = Booking::create([
+            'organization_id' => $organization->id,
+            'customer_id' => $customer->id,
+            'service_id' => $service->id,
+            'slot_id' => null, // Manual booking doesn't require slot
+            'staff_id' => null, // Can be assigned later
+            'booking_date' => $validated['booking_date'],
+            'start_time' => $startDateTime,
+            'end_time' => $endDateTime,
+            'status' => 'confirmed',
+            'payment_status' => 'unpaid',
+            'payment_method' => 'cash', // Default to cash for manual bookings
+            'total_price' => $service->price,
+            'customer_name' => $validated['customer_name'],
+            'customer_email' => $validated['customer_email'],
+            'customer_phone' => $validated['customer_phone'],
+            'notes' => $validated['notes'],
         ]);
 
-        DB::beginTransaction();
-        
-        try {
-            $slot = Slot::findOrFail($validated['slot_id']);
-            $service = Service::findOrFail($validated['service_id']);
+        DB::commit();
 
-            // Verify slot belongs to organization
-            if ($slot->organization_id !== $organization->id) {
-                throw new \Exception('Invalid slot');
-            }
-
-            // Check for conflicts
-            if ($this->slotService->hasConflict($slot)) {
-                return redirect()
-                    ->back()
-                    ->with('error', 'This slot is no longer available. Please select another time.');
-            }
-
-            // Find or create customer
-            $customer = User::firstOrCreate(
-                ['email' => $validated['customer_email']],
-                [
-                    'name' => $validated['customer_name'],
-                    'phone' => $validated['customer_phone'],
-                    'user_type' => 'customer',
-                    'password' => bcrypt(str()->random(16)), // Random password
-                ]
-            );
-
-            // Create booking
-            $booking = Booking::create([
-                'organization_id' => $organization->id,
-                'customer_id' => $customer->id,
-                'service_id' => $service->id,
-                'slot_id' => $slot->id,
-                'staff_id' => $slot->assigned_staff_id,
-                'booking_date' => $slot->start_time->toDateString(),
-                'start_time' => $slot->start_time,
-                'end_time' => $slot->end_time,
-                'status' => $validated['payment_method'] === 'cash' ? 'confirmed' : 'pending',
-                'payment_status' => 'unpaid',
-                'payment_method' => $validated['payment_method'],
-                'customer_name' => $validated['customer_name'],
-                'customer_email' => $validated['customer_email'],
-                'customer_phone' => $validated['customer_phone'],
-                'notes' => $validated['notes'],
-            ]);
-
-            // Update slot booking count
-            $slot->increment('current_bookings');
-            if ($slot->current_bookings >= $slot->max_bookings) {
-                $slot->update(['status' => 'booked']);
-            }
-
-            DB::commit();
-
-            // Send notifications (will be implemented in Phase 7)
-            // event(new BookingCreated($booking));
-
-            if ($validated['payment_method'] === 'online') {
-                return redirect()
-                    ->route('bookings.payment', [$organization, $booking])
-                    ->with('success', 'Booking created. Please complete payment.');
-            }
-
-            return redirect()
-                ->route('bookings.show', [$organization, $booking])
-                ->with('success', 'Booking confirmed successfully!');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()
-                ->back()
-                ->with('error', 'Failed to create booking: ' . $e->getMessage());
-        }
+        return redirect()
+            ->route('organization.bookings.show', [$organization, $booking])
+            ->with('success', 'Booking created successfully!');
+            
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()
+            ->back()
+            ->withInput()
+            ->with('error', 'Failed to create booking: ' . $e->getMessage());
     }
-
+}
     /**
      * Display booking details
      */
@@ -283,5 +265,106 @@ class BookingController extends Controller
                 ->back()
                 ->with('error', 'Failed to cancel booking: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Confirm booking
+     */
+    public function confirm(Organization $organization, Booking $booking)
+    {
+        // Verify booking belongs to organization
+        if ($booking->organization_id !== $organization->id) {
+            abort(403);
+        }
+
+        // Check if booking can be confirmed
+        if ($booking->status !== 'pending') {
+            return redirect()
+                ->route('organization.bookings.show', [$organization, $booking])
+                ->with('error', 'This booking cannot be confirmed.');
+        }
+
+        // Update booking status
+        $booking->update([
+            'status' => 'confirmed',
+        ]);
+
+        // TODO: Send confirmation notification to customer
+
+        return redirect()
+            ->route('organization.bookings.show', [$organization, $booking])
+            ->with('success', 'Booking confirmed successfully.');
+    }
+
+    /**
+     * Show edit booking form
+     */
+    public function edit(Organization $organization, Booking $booking)
+    {
+        $this->authorize('view', $organization);
+        
+        if ($booking->organization_id !== $organization->id) {
+            abort(404);
+        }
+
+        $services = $organization->services()->where('is_active', true)->get();
+        $staff = $organization->users()->where('user_type', 'team')->get();
+
+        return view('bookings.edit', compact('organization', 'booking', 'services', 'staff'));
+    }
+
+    /**
+     * Update booking
+     */
+    public function update(Request $request, Organization $organization, Booking $booking)
+    {
+        $this->authorize('view', $organization);
+        
+        if ($booking->organization_id !== $organization->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_email' => 'required|email|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'status' => 'required|in:pending,confirmed,completed,cancelled,no_show',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $booking->update($validated);
+
+        return redirect()
+            ->route('organization.bookings.show', [$organization, $booking])
+            ->with('success', 'Booking updated successfully.');
+    }
+
+    /**
+     * Mark booking as completed
+     */
+    public function complete(Organization $organization, Booking $booking)
+    {
+        // Verify booking belongs to organization
+        if ($booking->organization_id !== $organization->id) {
+            abort(403);
+        }
+
+        // Check if booking can be completed
+        if ($booking->status !== 'confirmed') {
+            return redirect()
+                ->route('organization.bookings.show', [$organization, $booking])
+                ->with('error', 'Only confirmed bookings can be marked as completed.');
+        }
+
+        // Update booking status
+        $booking->update([
+            'status' => 'completed',
+        ]);
+
+        // TODO: Send completion notification to customer
+
+        return redirect()
+            ->route('organization.bookings.show', [$organization, $booking])
+            ->with('success', 'Booking marked as completed successfully.');
     }
 }

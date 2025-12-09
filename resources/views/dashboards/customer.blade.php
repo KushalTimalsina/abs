@@ -92,7 +92,7 @@
                                 </span>
                             </div>
                             <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                                <strong>Service:</strong> {{ $booking->service->name }}
+                                <strong>Service:</strong> {{ $booking->service?->name ?? 'N/A' }}
                             </p>
                             <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">
                                 <strong>Date:</strong> {{ $booking->booking_date->format('l, F d, Y') }}
@@ -105,7 +105,7 @@
                             </p>
                         </div>
                         <div class="flex flex-col space-y-2">
-                            <a href="{{ route('bookings.show', [$booking->organization, $booking]) }}" class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                            <a href="{{ route('organization.bookings.show', [$booking->organization, $booking]) }}" class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">
                                 View Details
                             </a>
                             @if($booking->booking_date->diffInDays(now()) >= 1)
@@ -133,14 +133,14 @@
                 <div class="flex-1">
                     <p class="font-medium text-gray-900 dark:text-white">{{ $booking->organization->name }}</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
-                        {{ $booking->service->name }} • {{ $booking->booking_date->format('M d, Y') }}
+                        {{ $booking->service?->name ?? 'N/A' }} • {{ $booking->booking_date->format('M d, Y') }}
                     </p>
                 </div>
                 <div class="flex items-center space-x-3">
                     <span class="px-2 py-1 text-xs font-medium rounded-full {{ $booking->status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
                         {{ ucfirst($booking->status) }}
                     </span>
-                    <a href="{{ route('bookings.show', [$booking->organization, $booking]) }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                    <a href="{{ route('organization.bookings.show', [$booking->organization, $booking]) }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
                         View
                     </a>
                 </div>
