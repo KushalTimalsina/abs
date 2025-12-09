@@ -55,4 +55,12 @@ class SubscriptionPayment extends Model
     {
         return $this->belongsTo(User::class, 'verified_by');
     }
+
+    /**
+     * Get the invoice for this subscription payment
+     */
+    public function invoice()
+    {
+        return $this->hasOne(Invoice::class);
+    }
 }

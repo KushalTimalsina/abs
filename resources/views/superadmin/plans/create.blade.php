@@ -83,6 +83,15 @@
                             </div>
                         </div>
 
+                        <!-- Online Payment Enabled -->
+                        <div>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="online_payment_enabled" value="1" {{ old('online_payment_enabled') ? 'checked' : '' }} class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Enable Online Payments (eSewa, Khalti, Stripe)</span>
+                            </label>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Allow organizations with this plan to configure and accept online payments</p>
+                        </div>
+
                         <div class="flex items-center justify-end space-x-4">
                             <a href="{{ route('superadmin.plans.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-300 dark:bg-gray-700 border border-transparent rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-400 dark:hover:bg-gray-600">
                                 Cancel

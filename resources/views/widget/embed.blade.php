@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 Widget Embed Code - {{ $organization->name }}
             </h2>
-            <a href="{{ route('widget.customize', $organization) }}" class="text-sm text-blue-600 hover:text-blue-800">
+            <a href="{{ route('organization.widget.customize', $organization) }}" class="text-sm text-blue-600 hover:text-blue-800">
                 ← Back to Customization
             </a>
         </div>
@@ -101,7 +101,7 @@
                     <li>• The widget automatically adapts to your website's theme</li>
                     <li>• Customers can book appointments directly from your website</li>
                     <li>• All bookings appear in your dashboard</li>
-                    <li>• You can customize colors and fonts in the <a href="{{ route('widget.customize', $organization) }}" class="text-blue-600 underline">customization page</a></li>
+                    <li>• You can customize colors and fonts in the <a href="{{ route('organization.widget.customize', $organization) }}" class="text-blue-600 underline">customization page</a></li>
                 </ul>
             </div>
         </div>

@@ -10,13 +10,19 @@ class Invoice extends Model
     use HasFactory;
 
     protected $fillable = [
+        'invoice_type',
         'booking_id',
         'payment_id',
+        'subscription_payment_id',
+        'organization_id',
         'invoice_number',
         'subtotal',
         'tax',
         'discount',
         'total',
+        'payment_method',
+        'paid_by',
+        'paid_at',
         'issued_at',
         'due_at',
         'status',
@@ -25,6 +31,7 @@ class Invoice extends Model
     protected $casts = [
         'issued_at' => 'datetime',
         'due_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -58,6 +65,46 @@ class Invoice extends Model
     }
 
     /**
+     * Get the subscription payment for this invoice
+     */
+    public function subscriptionPayment()
+    {
+        return $this->belongsTo(SubscriptionPayment::class);
+    }
+
+    /**
+     * Get the organization for this invoice
+     */
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * Check if this is a subscription invoice
+     */
+    public function isSubscriptionInvoice(): bool
+    {
+        return $this->invoice_type === 'subscription';
+    }
+
+    /**
+     * Check if this is a booking invoice
+     */
+    public function isBookingInvoice(): bool
+    {
+        return $this->invoice_type === 'booking';
+    }
+
+    /**
+     * Check if invoice is paid
+     */
+    public function isPaid(): bool
+    {
+        return $this->status === 'paid' && $this->paid_at !== null;
+    }
+
+    /**
      * Get total in rupees (from paisa)
      */
     public function getTotalInRupeesAttribute(): float
@@ -68,9 +115,24 @@ class Invoice extends Model
     /**
      * Mark invoice as paid
      */
-    public function markAsPaid()
+    public function markAsPaid($paidBy = null)
     {
-        $this->update(['status' => 'paid']);
+        $this->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+            'paid_by' => $paidBy ?? $this->payment_method,
+        ]);
+    }
+
+    /**
+     * Mark invoice as unpaid
+     */
+    public function markAsUnpaid()
+    {
+        $this->update([
+            'status' => 'unpaid',
+            'paid_at' => null,
+        ]);
     }
 
     /**
@@ -81,4 +143,20 @@ class Invoice extends Model
         $this->total = $this->subtotal + $this->tax - $this->discount;
         $this->save();
     }
+
+    /**
+     * Get payment method display name
+     */
+    public function getPaymentMethodNameAttribute(): string
+    {
+        return match($this->payment_method) {
+            'esewa' => 'eSewa',
+            'khalti' => 'Khalti',
+            'stripe' => 'Stripe',
+            'bank_transfer' => 'Bank Transfer',
+            'cash' => 'Cash',
+            default => ucfirst($this->payment_method ?? 'N/A'),
+        };
+    }
 }
+

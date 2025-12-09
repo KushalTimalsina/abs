@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Superadmin;
 use App\Http\Controllers\Controller;
 use App\Models\SubscriptionPayment;
 use App\Models\OrganizationSubscription;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -83,6 +84,12 @@ class SubscriptionPaymentController extends Controller
         // Send subscription confirmation email
         \Mail::to($payment->organization->email ?? $payment->organization->users->first()->email)
             ->send(new \App\Mail\SubscriptionConfirmation($payment->organization, $subscription));
+
+        // Auto-generate invoice
+        $invoiceService = app(InvoiceService::class);
+        if (!$invoiceService->hasSubscriptionInvoice($payment)) {
+            $invoiceService->generateSubscriptionInvoice($payment);
+        }
 
         return redirect()->back()
             ->with('success', 'Payment verified, subscription activated, and confirmation email sent');

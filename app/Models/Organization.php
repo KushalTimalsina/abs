@@ -122,6 +122,29 @@ class Organization extends Model
     }
 
     /**
+     * Get subscription payments for this organization
+     */
+    public function subscriptionPayments()
+    {
+        return $this->hasMany(\App\Models\SubscriptionPayment::class);
+    }
+
+    /**
+     * Get booking payments for this organization
+     */
+    public function payments()
+    {
+        return $this->hasManyThrough(
+            \App\Models\Payment::class,
+            \App\Models\Booking::class,
+            'organization_id', // Foreign key on bookings table
+            'booking_id',      // Foreign key on payments table
+            'id',              // Local key on organizations table
+            'id'               // Local key on bookings table
+        );
+    }
+
+    /**
      * Get widget settings for this organization
      */
     public function widgetSettings()
@@ -175,7 +198,23 @@ class Organization extends Model
     public function getAvailablePaymentMethods(): array
     {
         $plan = $this->getCurrentPlan();
-        return $plan ? $plan->payment_methods : ['cash'];
+        
+        if (!$plan) {
+            return ['cash'];
+        }
+        
+        // Ensure payment_methods is an array
+        $methods = $plan->payment_methods;
+        
+        if (is_null($methods)) {
+            return ['cash'];
+        }
+        
+        if (is_string($methods)) {
+            return json_decode($methods, true) ?? ['cash'];
+        }
+        
+        return is_array($methods) ? $methods : ['cash'];
     }
 
     /**
@@ -184,5 +223,19 @@ class Organization extends Model
     public function getActivePaymentGateways()
     {
         return $this->paymentGateways()->where('is_active', true)->get();
+    }
+
+    /**
+     * Check if organization can accept online payments
+     */
+    public function canAcceptOnlinePayments(): bool
+    {
+        $plan = $this->getCurrentPlan();
+        
+        if (!$plan) {
+            return false;
+        }
+        
+        return $plan->online_payment_enabled ?? false;
     }
 }

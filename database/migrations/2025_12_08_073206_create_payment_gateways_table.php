@@ -14,14 +14,14 @@ return new class extends Migration
         Schema::create('payment_gateways', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->onDelete('cascade');
-            $table->enum('gateway_type', ['esewa', 'khalti', 'stripe', 'cash'])->default('cash');
-            $table->text('credentials')->nullable(); // encrypted JSON for API keys
-            $table->json('settings')->nullable(); // gateway-specific settings
+            $table->enum('gateway_name', ['esewa', 'khalti', 'stripe', 'bank_transfer', 'cash']);
+            $table->text('credentials')->nullable(); // encrypted JSON for API keys (only for online gateways)
+            $table->json('settings')->nullable(); // gateway-specific settings (bank details, instructions, etc.)
             $table->boolean('is_active')->default(false);
-            $table->boolean('is_test_mode')->default(true);
+            $table->boolean('is_test_mode')->default(false);
             $table->timestamps();
             
-            $table->unique(['organization_id', 'gateway_type']);
+            $table->unique(['organization_id', 'gateway_name']);
         });
     }
 

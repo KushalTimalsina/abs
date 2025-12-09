@@ -6,16 +6,19 @@ use App\Models\Organization;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Services\PaymentService;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
     protected $paymentService;
+    protected $invoiceService;
 
-    public function __construct(PaymentService $paymentService)
+    public function __construct(PaymentService $paymentService, InvoiceService $invoiceService)
     {
         $this->paymentService = $paymentService;
+        $this->invoiceService = $invoiceService;
     }
 
     /**
@@ -82,18 +85,23 @@ class PaymentController extends Controller
             $verified = $this->paymentService->verifyEsewaPayment($payment, $request->all());
 
             if ($verified) {
+                // Auto-generate invoice
+                if (!$this->invoiceService->hasBookingInvoice($payment->booking)) {
+                    $this->invoiceService->generateBookingInvoice($payment->booking, $payment);
+                }
+
                 return redirect()
-                    ->route('bookings.show', [$payment->organization, $payment->booking])
+                    ->route('bookings.show', [$payment->booking->organization, $payment->booking])
                     ->with('success', 'Payment successful! Your booking is confirmed.');
             }
 
             return redirect()
-                ->route('bookings.show', [$payment->organization, $payment->booking])
+                ->route('bookings.show', [$payment->booking->organization, $payment->booking])
                 ->with('error', 'Payment verification failed. Please contact support.');
                 
         } catch (\Exception $e) {
             return redirect()
-                ->route('bookings.show', [$payment->organization, $payment->booking])
+                ->route('bookings.show', [$payment->booking->organization, $payment->booking])
                 ->with('error', 'Payment verification error: ' . $e->getMessage());
         }
     }
@@ -106,7 +114,7 @@ class PaymentController extends Controller
         $payment->update(['status' => 'failed']);
 
         return redirect()
-            ->route('payments.show', [$payment->organization, $payment->booking])
+            ->route('payments.show', [$payment->booking->organization, $payment->booking])
             ->with('error', 'Payment was cancelled or failed. Please try again.');
     }
 
@@ -125,18 +133,23 @@ class PaymentController extends Controller
             $verified = $this->paymentService->verifyKhaltiPayment($payment, $pidx);
 
             if ($verified) {
+                // Auto-generate invoice
+                if (!$this->invoiceService->hasBookingInvoice($payment->booking)) {
+                    $this->invoiceService->generateBookingInvoice($payment->booking, $payment);
+                }
+
                 return redirect()
-                    ->route('bookings.show', [$payment->organization, $payment->booking])
+                    ->route('bookings.show', [$payment->booking->organization, $payment->booking])
                     ->with('success', 'Payment successful! Your booking is confirmed.');
             }
 
             return redirect()
-                ->route('bookings.show', [$payment->organization, $payment->booking])
+                ->route('bookings.show', [$payment->booking->organization, $payment->booking])
                 ->with('error', 'Payment verification failed. Please contact support.');
                 
         } catch (\Exception $e) {
             return redirect()
-                ->route('bookings.show', [$payment->organization, $payment->booking])
+                ->route('bookings.show', [$payment->booking->organization, $payment->booking])
                 ->with('error', 'Payment verification error: ' . $e->getMessage());
         }
     }
@@ -173,6 +186,11 @@ class PaymentController extends Controller
         try {
             $payment = $this->paymentService->processCashPayment($booking);
 
+            // Auto-generate invoice for cash payment (will be marked as unpaid)
+            if (!$this->invoiceService->hasBookingInvoice($booking)) {
+                $this->invoiceService->generateBookingInvoice($booking, $payment);
+            }
+
             return redirect()
                 ->route('bookings.show', [$organization, $booking])
                 ->with('success', 'Cash payment recorded successfully');
@@ -194,20 +212,20 @@ class PaymentController extends Controller
         $query = $organization->payments()->with(['booking', 'invoice']);
 
         // Filter by status
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
         // Filter by payment method
-        if ($request->has('method')) {
+        if ($request->filled('method')) {
             $query->where('payment_method', $request->method);
         }
 
         // Filter by date range
-        if ($request->has('start_date')) {
+        if ($request->filled('start_date')) {
             $query->whereDate('created_at', '>=', $request->start_date);
         }
-        if ($request->has('end_date')) {
+        if ($request->filled('end_date')) {
             $query->whereDate('created_at', '<=', $request->end_date);
         }
 

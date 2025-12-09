@@ -52,11 +52,11 @@
                                 @forelse($payments as $payment)
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $payment->subscription->organization->name }}</div>
-                                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ $payment->subscription->organization->email }}</div>
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $payment->subscription?->organization?->name ?? 'N/A' }}</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ $payment->subscription?->organization?->email ?? 'N/A' }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $payment->subscription->plan->name }}
+                                            {{ $payment->subscription?->plan?->name ?? 'N/A' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                             NPR {{ number_format($payment->amount, 2) }}

@@ -60,6 +60,7 @@ class SubscriptionPlanController extends Controller
         $validated['max_services'] = $validated['max_services'] ?? 999999;
         $validated['slot_scheduling_days'] = $validated['slot_scheduling_days'] ?? 365;
         $validated['is_active'] = $request->has('is_active') ? true : false;
+        $validated['online_payment_enabled'] = $request->has('online_payment_enabled') ? true : false;
 
         SubscriptionPlan::create($validated);
 
@@ -85,14 +86,18 @@ class SubscriptionPlanController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'duration_days' => 'required|integer|min:1',
-            'max_team_members' => 'required|integer|min:1',
-            'max_services' => 'required|integer|min:1',
-            'slot_scheduling_days' => 'required|integer|min:1',
+            'max_team_members' => 'nullable|integer|min:1',
+            'max_services' => 'nullable|integer|min:1',
+            'max_bookings_per_month' => 'nullable|integer|min:1',
+            'slot_scheduling_days' => 'nullable|integer|min:1',
             'features' => 'nullable|array',
             'is_active' => 'boolean',
+            'online_payment_enabled' => 'boolean',
         ]);
 
         $validated['features'] = json_encode($validated['features'] ?? []);
+        $validated['is_active'] = $request->has('is_active') ? true : false;
+        $validated['online_payment_enabled'] = $request->has('online_payment_enabled') ? true : false;
 
         $plan->update($validated);
 

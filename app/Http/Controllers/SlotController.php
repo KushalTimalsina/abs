@@ -18,74 +18,76 @@ class SlotController extends Controller
         $this->slotService = $slotService;
     }
 
-    /**
-     * Display slots
-     */
     public function index(Organization $organization, Request $request)
     {
         $this->authorize('view', $organization);
         
-        $services = $organization->services()->where('is_active', true)->get();
+        // Load slots for the current week
+        $startOfWeek = now()->startOfWeek();
+        $endOfWeek = now()->endOfWeek();
         
-        $query = $organization->slots()->with(['service', 'assignedStaff']);
-
-        // Filter by service
-        if ($request->has('service_id')) {
-            $query->where('service_id', $request->service_id);
-        }
-
-        // Filter by date
-        if ($request->has('date')) {
-            $date = Carbon::parse($request->date);
-            $query->whereDate('start_time', $date);
-        } else {
-            // Default to today
-            $query->whereDate('start_time', today());
-        }
-
-        // Filter by status
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $slots = $query->orderBy('start_time')->get();
+        $slots = $organization->slots()
+            ->with(['shift', 'booking', 'staff'])
+            ->whereBetween('date', [$startOfWeek->format('Y-m-d'), $endOfWeek->format('Y-m-d')])
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->get();
         
-        return view('slots.index', compact('organization', 'slots', 'services'));
+        return view('slots.index', compact('organization', 'slots'));
     }
 
     /**
-     * Generate slots for a service
+     * Generate slots from shifts
      */
     public function generate(Request $request, Organization $organization)
     {
-        $this->authorize('manageServices', $organization);
+        $this->authorize('update', $organization);
         
         $validated = $request->validate([
-            'service_id' => ['required', 'exists:services,id'],
             'start_date' => ['required', 'date', 'after_or_equal:today'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ]);
 
         try {
-            $service = Service::findOrFail($validated['service_id']);
-            
-            if ($service->organization_id !== $organization->id) {
-                abort(404);
-            }
-
             $startDate = Carbon::parse($validated['start_date']);
             $endDate = Carbon::parse($validated['end_date']);
-
-            $slots = $this->slotService->generateSlots(
-                $organization,
-                $service,
-                $startDate,
-                $endDate
-            );
+            
+            // Get all active shifts for the organization
+            $shifts = $organization->shifts()->where('is_active', true)->get();
+            
+            if ($shifts->isEmpty()) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'No active shifts found. Please create shifts first.');
+            }
+            
+            $slotsCreated = 0;
+            
+            // Generate slots for each day in the range
+            for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+                $dayOfWeek = $date->dayOfWeek;
+                
+                // Get shifts for this day of week
+                $dayShifts = $shifts->where('day_of_week', $dayOfWeek);
+                
+                foreach ($dayShifts as $shift) {
+                    // Create slot for this shift
+                    Slot::create([
+                        'shift_id' => $shift->id,
+                        'organization_id' => $organization->id,
+                        'date' => $date->format('Y-m-d'),
+                        'start_time' => $shift->start_time,
+                        'end_time' => $shift->end_time,
+                        'assigned_staff_id' => $shift->user_id,
+                        'status' => 'available',
+                    ]);
+                    $slotsCreated++;
+                }
+            }
 
             return redirect()
                 ->route('slots.index', $organization)
-                ->with('success', "Generated {$slots->count()} slots successfully");
+                ->with('success', "Generated {$slotsCreated} slots successfully");
                 
         } catch (\Exception $e) {
             return redirect()
@@ -114,6 +116,55 @@ class SlotController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Slot blocked successfully');
+    }
+
+    /**
+     * Toggle slot availability (block/unblock)
+     */
+    public function toggle(Organization $organization, Slot $slot)
+    {
+        $this->authorize('update', $organization);
+        
+        if ($slot->organization_id !== $organization->id) {
+            abort(404);
+        }
+
+        // Can't toggle if slot is booked
+        if ($slot->status === 'booked') {
+            return redirect()
+                ->back()
+                ->with('error', 'Cannot modify a booked slot');
+        }
+
+        // Toggle between available and unavailable
+        $newStatus = $slot->status === 'available' ? 'unavailable' : 'available';
+        $slot->update(['status' => $newStatus]);
+
+        return redirect()
+            ->back()
+            ->with('success', $newStatus === 'available' ? 'Slot marked as available' : 'Slot marked as unavailable');
+    }
+
+    /**
+     * Update slot status manually
+     */
+    public function updateStatus(Request $request, Organization $organization, Slot $slot)
+    {
+        $this->authorize('update', $organization);
+        
+        if ($slot->organization_id !== $organization->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:available,unavailable,rescheduled'],
+        ]);
+
+        $slot->update(['status' => $validated['status']]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Slot status updated successfully');
     }
 
     /**

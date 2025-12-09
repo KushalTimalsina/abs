@@ -30,7 +30,7 @@ class PaymentGatewayController extends Controller
         $this->authorize('update', $organization);
         
         $validated = $request->validate([
-            'gateway_name' => ['required', 'in:esewa,khalti,stripe'],
+            'gateway_name' => ['required', 'in:esewa,khalti,stripe,bank_transfer,cash'],
             'is_active' => ['boolean'],
             'is_test_mode' => ['boolean'],
             
@@ -45,19 +45,29 @@ class PaymentGatewayController extends Controller
             // Stripe credentials
             'stripe_publishable_key' => ['required_if:gateway_name,stripe', 'nullable', 'string'],
             'stripe_secret_key' => ['required_if:gateway_name,stripe', 'nullable', 'string'],
+            
+            // Bank Transfer details
+            'bank_name' => ['required_if:gateway_name,bank_transfer', 'nullable', 'string'],
+            'account_holder' => ['required_if:gateway_name,bank_transfer', 'nullable', 'string'],
+            'account_number' => ['required_if:gateway_name,bank_transfer', 'nullable', 'string'],
+            'branch' => ['nullable', 'string'],
+            'bank_instructions' => ['nullable', 'string'],
+            
+            // Cash payment details
+            'cash_instructions' => ['nullable', 'string'],
         ]);
 
-        // Check if gateway is allowed in subscription plan
-        $availableMethods = $organization->getAvailablePaymentMethods();
-        
-        if (!in_array($validated['gateway_name'], $availableMethods) && !in_array('online', $availableMethods)) {
+        // Check if organization can accept online payments (only for online gateways)
+        if (in_array($validated['gateway_name'], ['esewa', 'khalti', 'stripe']) && !$organization->canAcceptOnlinePayments()) {
             return redirect()
                 ->back()
-                ->with('error', 'This payment gateway is not available in your subscription plan. Please upgrade to use online payments.');
+                ->with('error', 'Online payments are not available in your subscription plan. Please upgrade to a plan with online payment features enabled.');
         }
 
-        // Prepare credentials based on gateway
-        $credentials = [];
+        // Prepare credentials and settings based on gateway
+        $credentials = null;
+        $settings = null;
+        
         switch ($validated['gateway_name']) {
             case 'esewa':
                 $credentials = [
@@ -77,10 +87,24 @@ class PaymentGatewayController extends Controller
                     'secret_key' => $validated['stripe_secret_key'],
                 ];
                 break;
+            case 'bank_transfer':
+                $settings = [
+                    'bank_name' => $validated['bank_name'],
+                    'account_holder' => $validated['account_holder'],
+                    'account_number' => $validated['account_number'],
+                    'branch' => $validated['branch'] ?? null,
+                    'instructions' => $validated['bank_instructions'] ?? null,
+                ];
+                break;
+            case 'cash':
+                $settings = [
+                    'instructions' => $validated['cash_instructions'] ?? 'Pay cash at the time of appointment.',
+                ];
+                break;
         }
 
-        // Encrypt credentials
-        $encryptedCredentials = Crypt::encryptString(json_encode($credentials));
+        // Encrypt credentials only if they exist (online gateways)
+        $encryptedCredentials = $credentials ? Crypt::encryptString(json_encode($credentials)) : null;
 
         // Update or create gateway configuration
         PaymentGateway::updateOrCreate(
@@ -90,14 +114,15 @@ class PaymentGatewayController extends Controller
             ],
             [
                 'credentials' => $encryptedCredentials,
+                'settings' => $settings,
                 'is_active' => $request->has('is_active'),
-                'is_test_mode' => $request->has('is_test_mode'),
+                'is_test_mode' => in_array($validated['gateway_name'], ['esewa', 'khalti', 'stripe']) ? $request->has('is_test_mode') : false,
             ]
         );
 
         return redirect()
             ->route('payment-gateways.index', $organization)
-            ->with('success', ucfirst($validated['gateway_name']) . ' payment gateway configured successfully');
+            ->with('success', ucfirst(str_replace('_', ' ', $validated['gateway_name'])) . ' payment method configured successfully');
     }
 
     /**

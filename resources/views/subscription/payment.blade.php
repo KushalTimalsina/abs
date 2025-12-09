@@ -44,7 +44,7 @@
                                 @foreach($paymentGateways as $gateway)
                                     <div class="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-blue-500 transition-colors cursor-pointer payment-method-card" data-gateway="{{ $gateway->gateway }}">
                                         <div class="flex items-center justify-between">
-                                            <div class="flex items-center">
+                                            <div class="flex items-center flex-1">
                                                 @if($gateway->gateway === 'esewa')
                                                     <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold mr-3">eS</div>
                                                 @elseif($gateway->gateway === 'khalti')
@@ -59,9 +59,22 @@
                                                 @else
                                                     <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold mr-3">S</div>
                                                 @endif
-                                                <div>
-                                                    <h4 class="font-semibold text-gray-900 dark:text-white">{{ ucfirst(str_replace('_', ' ', $gateway->gateway)) }}</h4>
-                                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ $gateway->account_details['description'] ?? 'Pay securely' }}</p>
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-2">
+                                                        <h4 class="font-semibold text-gray-900 dark:text-white">{{ ucfirst(str_replace('_', ' ', $gateway->gateway)) }}</h4>
+                                                        @if(in_array($gateway->gateway, ['esewa', 'khalti', 'stripe']))
+                                                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full">Online</span>
+                                                        @else
+                                                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">Offline</span>
+                                                        @endif
+                                                    </div>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                        @if(in_array($gateway->gateway, ['esewa', 'khalti', 'stripe']))
+                                                            Instant activation after payment
+                                                        @else
+                                                            Manual verification required
+                                                        @endif
+                                                    </p>
                                                 </div>
                                             </div>
                                             <input type="radio" name="payment_method_select" value="{{ $gateway->gateway }}" class="w-5 h-5 text-blue-600">

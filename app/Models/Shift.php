@@ -12,16 +12,21 @@ class Shift extends Model
 
     protected $fillable = [
         'organization_id',
+        'user_id',
         'day_of_week',
+        'specific_date',
         'start_time',
         'end_time',
         'slot_duration',
         'max_concurrent_bookings',
+        'is_recurring',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_recurring' => 'boolean',
+        'specific_date' => 'date',
     ];
 
     /**
@@ -30,6 +35,14 @@ class Shift extends Model
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * Get the user (team member) assigned to this shift
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**

@@ -59,7 +59,7 @@ class SubscriptionPaymentSubmissionController extends Controller
         }
 
         $validated = $request->validate([
-            'payment_method' => 'required|in:cash,esewa,khalti,bank_transfer',
+            'payment_method' => 'required|in:esewa,khalti,stripe,bank_transfer',
             'transaction_id' => 'nullable|string|max:255',
             'payment_proof' => 'nullable|image|max:2048', // 2MB max
             'admin_notes' => 'nullable|string|max:500',

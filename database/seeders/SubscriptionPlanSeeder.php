@@ -28,6 +28,7 @@ class SubscriptionPlanSeeder extends Seeder
                 ],
                 'sort_order' => 1,
                 'is_active' => true,
+                'online_payment_enabled' => false,
             ],
             [
                 'name' => 'Mid',
@@ -44,6 +45,7 @@ class SubscriptionPlanSeeder extends Seeder
                 ],
                 'sort_order' => 2,
                 'is_active' => true,
+                'online_payment_enabled' => true,
             ],
             [
                 'name' => 'Top',
@@ -61,6 +63,7 @@ class SubscriptionPlanSeeder extends Seeder
                 ],
                 'sort_order' => 3,
                 'is_active' => true,
+                'online_payment_enabled' => true,
             ],
         ];
 

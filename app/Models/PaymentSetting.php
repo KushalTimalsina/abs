@@ -23,11 +23,47 @@ class PaymentSetting extends Model
     ];
 
     /**
+     * Check if this is an online payment method
+     */
+    public function isOnlinePayment(): bool
+    {
+        return in_array($this->gateway, ['esewa', 'khalti', 'stripe']);
+    }
+
+    /**
+     * Check if this is an offline payment method
+     */
+    public function isOfflinePayment(): bool
+    {
+        return $this->gateway === 'bank_transfer';
+    }
+
+    /**
      * Get all active payment gateways
      */
     public static function activeGateways()
     {
         return self::where('is_active', true)->get();
+    }
+
+    /**
+     * Get active online payment gateways
+     */
+    public static function getOnlineGateways()
+    {
+        return self::whereIn('gateway', ['esewa', 'khalti', 'stripe'])
+            ->where('is_active', true)
+            ->get();
+    }
+
+    /**
+     * Get active offline payment gateways
+     */
+    public static function getOfflineGateways()
+    {
+        return self::where('gateway', 'bank_transfer')
+            ->where('is_active', true)
+            ->get();
     }
 
     /**
@@ -47,3 +83,4 @@ class PaymentSetting extends Model
         return $setting && $setting->is_active;
     }
 }
+

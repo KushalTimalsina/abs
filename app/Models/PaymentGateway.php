@@ -11,7 +11,7 @@ class PaymentGateway extends Model
 
     protected $fillable = [
         'organization_id',
-        'gateway_type',
+        'gateway_name',
         'credentials',
         'settings',
         'is_active',

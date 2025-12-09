@@ -66,7 +66,7 @@ class ShiftController extends Controller
         Shift::create($validated);
 
         return redirect()
-            ->route('shifts.index', $organization)
+            ->route('organization.shifts.index', $organization)
             ->with('success', 'Shift created successfully');
     }
 
@@ -94,7 +94,7 @@ class ShiftController extends Controller
         $shift->update($validated);
 
         return redirect()
-            ->route('shifts.index', $organization)
+            ->route('organization.shifts.index', $organization)
             ->with('success', 'Shift updated successfully');
     }
 
@@ -112,7 +112,7 @@ class ShiftController extends Controller
         $shift->delete();
 
         return redirect()
-            ->route('shifts.index', $organization)
+            ->route('organization.shifts.index', $organization)
             ->with('success', 'Shift deleted successfully');
     }
 
@@ -125,8 +125,8 @@ class ShiftController extends Controller
         
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
+            'day_of_week' => ['required', 'integer', 'between:0,6'],
             'shifts' => ['required', 'array', 'min:1'],
-            'shifts.*.day_of_week' => ['required', 'integer', 'between:0,6'],
             'shifts.*.start_time' => ['required', 'date_format:H:i'],
             'shifts.*.end_time' => ['required', 'date_format:H:i'],
         ]);
@@ -143,19 +143,21 @@ class ShiftController extends Controller
                 ->with('error', 'User is not a member of this organization');
         }
 
+        $createdCount = 0;
         foreach ($validated['shifts'] as $shiftData) {
             Shift::create([
                 'organization_id' => $organization->id,
                 'user_id' => $validated['user_id'],
-                'day_of_week' => $shiftData['day_of_week'],
+                'day_of_week' => $validated['day_of_week'],
                 'start_time' => $shiftData['start_time'],
                 'end_time' => $shiftData['end_time'],
                 'is_recurring' => true,
             ]);
+            $createdCount++;
         }
 
         return redirect()
-            ->route('shifts.index', $organization)
-            ->with('success', 'Shifts created successfully');
+            ->route('organization.shifts.index', $organization)
+            ->with('success', "Created {$createdCount} shifts successfully");
     }
 }

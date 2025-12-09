@@ -131,10 +131,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/embed', [\App\Http\Controllers\WidgetController::class, 'embed'])->name('embed');
             Route::get('/preview', [\App\Http\Controllers\WidgetController::class, 'preview'])->name('preview');
         });
-    });
-        
-    // Booking routes (protected by role and subscription middleware)
-    Route::middleware(['auth', 'role:admin,team_member,frontdesk', 'subscription'])->group(function () {
+
+        // Booking routes
         Route::prefix('{organization}/bookings')->name('bookings.')->group(function () {
             Route::get('/', [\App\Http\Controllers\BookingController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\BookingController::class, 'create'])->name('create');
@@ -142,16 +140,18 @@ Route::middleware('auth')->group(function () {
             Route::get('/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('show');
             Route::get('/{booking}/edit', [\App\Http\Controllers\BookingController::class, 'edit'])->name('edit');
             Route::put('/{booking}', [\App\Http\Controllers\BookingController::class, 'update'])->name('update');
+            Route::put('/{booking}/cancel', [\App\Http\Controllers\BookingController::class, 'cancel'])->name('cancel');
+            Route::put('/{booking}/confirm', [\App\Http\Controllers\BookingController::class, 'confirm'])->name('confirm');
+            Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
             Route::delete('/{booking}', [\App\Http\Controllers\BookingController::class, 'destroy'])->name('destroy');
-            Route::post('/{booking}/cancel', [\App\Http\Controllers\BookingController::class, 'cancel'])->name('cancel');
-            Route::post('/{booking}/confirm', [\App\Http\Controllers\BookingController::class, 'confirm'])->name('confirm');
-            Route::post('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
         });
-        
+
         // Slot routes
         Route::prefix('{organization}/slots')->name('slots.')->group(function () {
             Route::get('/', [\App\Http\Controllers\SlotController::class, 'index'])->name('index');
             Route::post('/generate', [\App\Http\Controllers\SlotController::class, 'generate'])->name('generate');
+            Route::post('/{slot}/toggle', [\App\Http\Controllers\SlotController::class, 'toggle'])->name('toggle');
+            Route::put('/{slot}/update-status', [\App\Http\Controllers\SlotController::class, 'updateStatus'])->name('update-status');
             Route::post('/{slot}/block', [\App\Http\Controllers\SlotController::class, 'block'])->name('block');
             Route::post('/{slot}/unblock', [\App\Http\Controllers\SlotController::class, 'unblock'])->name('unblock');
             Route::delete('/{slot}', [\App\Http\Controllers\SlotController::class, 'destroy'])->name('destroy');
@@ -172,6 +172,25 @@ Route::middleware('auth')->group(function () {
             Route::post('/bookings/{booking}/initiate', [\App\Http\Controllers\PaymentController::class, 'initiate'])->name('initiate');
             Route::post('/bookings/{booking}/cash', [\App\Http\Controllers\PaymentController::class, 'processCash'])->name('cash');
         });
+
+        // Payment Gateway routes
+        Route::prefix('{organization}/payment-gateways')->name('payment-gateways.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\PaymentGatewayController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\PaymentGatewayController::class, 'store'])->name('store');
+            Route::put('/{paymentGateway}', [\App\Http\Controllers\PaymentGatewayController::class, 'update'])->name('update');
+            Route::post('/{paymentGateway}/test', [\App\Http\Controllers\PaymentGatewayController::class, 'test'])->name('test');
+            Route::post('/{paymentGateway}/toggle', [\App\Http\Controllers\PaymentGatewayController::class, 'toggle'])->name('toggle');
+            Route::delete('/{paymentGateway}', [\App\Http\Controllers\PaymentGatewayController::class, 'destroy'])->name('destroy');
+        });
+    });
+    
+    // Invoice routes
+    Route::prefix('invoices')->name('invoices.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\InvoiceController::class, 'index'])->name('index');
+        Route::get('/{invoice}', [\App\Http\Controllers\InvoiceController::class, 'show'])->name('show');
+        Route::get('/{invoice}/download', [\App\Http\Controllers\InvoiceController::class, 'download'])->name('download');
+        Route::post('/bookings/{booking}/generate', [\App\Http\Controllers\InvoiceController::class, 'generateForBooking'])->name('generate.booking');
+        Route::post('/subscriptions/{subscriptionPayment}/generate', [\App\Http\Controllers\InvoiceController::class, 'generateForSubscription'])->name('generate.subscription');
     });
     
     // Notification routes
@@ -198,6 +217,24 @@ Route::prefix('api/widget/{organization}')->name('api.widget.')->group(function 
     Route::get('/services/{service}/slots', [\App\Http\Controllers\WidgetApiController::class, 'getAvailableSlots'])->name('slots');
     Route::post('/bookings', [\App\Http\Controllers\WidgetApiController::class, 'createBooking'])->name('bookings');
 });
+
+// Public Booking Routes (Customer-facing)
+Route::prefix('book/{slug}')->name('public.booking.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\PublicBookingController::class, 'index'])->name('index');
+    Route::get('/services/{service}', [\App\Http\Controllers\PublicBookingController::class, 'showService'])->name('service');
+    Route::get('/services/{service}/slots', [\App\Http\Controllers\PublicBookingController::class, 'getAvailableSlots'])->name('slots');
+    Route::get('/services/{service}/slots/{slot}/book', [\App\Http\Controllers\PublicBookingController::class, 'showBookingForm'])->name('form');
+    Route::post('/bookings', [\App\Http\Controllers\PublicBookingController::class, 'store'])->name('store');
+    Route::get('/bookings/{booking}/confirmation', [\App\Http\Controllers\PublicBookingController::class, 'confirmation'])->name('confirmation');
+});
+
+// Customer Bookings Routes (Authenticated customers)
+Route::middleware('auth')->prefix('my-bookings')->name('my-bookings.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\CustomerBookingController::class, 'index'])->name('index');
+    Route::get('/{booking}', [\App\Http\Controllers\CustomerBookingController::class, 'show'])->name('show');
+    Route::post('/{booking}/cancel', [\App\Http\Controllers\CustomerBookingController::class, 'cancel'])->name('cancel');
+});
+
 
 // Widget analytics (protected)
 Route::middleware('auth')->group(function () {

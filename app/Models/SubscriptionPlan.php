@@ -23,12 +23,15 @@ class SubscriptionPlan extends Model
         'features',
         'is_active',
         'sort_order',
+        'stripe_price',
+        'online_payment_enabled',
     ];
 
     protected $casts = [
         'payment_methods' => 'array',
         'features' => 'array',
         'is_active' => 'boolean',
+        'online_payment_enabled' => 'boolean',
     ];
 
     /**

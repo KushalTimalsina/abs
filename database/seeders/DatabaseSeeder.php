@@ -14,6 +14,9 @@ class DatabaseSeeder extends Seeder
     {
         // Seed superadmin account
         $this->call(SuperadminSeeder::class);
+        $this->call(PaymentSettingsSeeder::class);
+        $this->call(SubscriptionPlanSeeder::class);
+        $this->call(TestUsersSeeder::class);
         
         // \App\Models\User::factory(10)->create();
 

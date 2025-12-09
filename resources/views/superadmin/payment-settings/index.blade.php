@@ -35,7 +35,14 @@
                                             </div>
                                         @endif
                                         <div>
-                                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ ucfirst(str_replace('_', ' ', $setting->gateway)) }}</h3>
+                                            <div class="flex items-center gap-2">
+                                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ ucfirst(str_replace('_', ' ', $setting->gateway)) }}</h3>
+                                                @if(in_array($setting->gateway, ['esewa', 'khalti', 'stripe']))
+                                                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full">Online</span>
+                                                @else
+                                                    <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">Offline</span>
+                                                @endif
+                                            </div>
                                             <p class="text-sm text-gray-500 dark:text-gray-400">
                                                 @if($setting->is_active)
                                                     <span class="text-green-600 dark:text-green-400">● Active</span>

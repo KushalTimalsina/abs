@@ -16,13 +16,19 @@ class WidgetController extends Controller
     {
         $this->authorize('update', $organization);
         
-        $widgetSettings = $organization->widgetSettings ?? new WidgetSettings([
-            'organization_id' => $organization->id,
-            'primary_color' => '#3B82F6',
-            'secondary_color' => '#1E40AF',
-            'font_family' => 'Inter, sans-serif',
-            'show_logo' => true,
-        ]);
+        // Get or create widget settings with defaults
+        $widgetSettings = $organization->widgetSettings;
+        
+        if (!$widgetSettings) {
+            $widgetSettings = WidgetSettings::create([
+                'organization_id' => $organization->id,
+                'primary_color' => '#3B82F6',
+                'secondary_color' => '#1E40AF',
+                'font_family' => 'Inter, sans-serif',
+                'show_logo' => true,
+                'allowed_domains' => json_encode([]),
+            ]);
+        }
         
         return view('widget.customize', compact('organization', 'widgetSettings'));
     }
@@ -59,7 +65,7 @@ class WidgetController extends Controller
         );
 
         return redirect()
-            ->route('widget.customize', $organization)
+            ->route('organization.widget.customize', $organization)
             ->with('success', 'Widget settings updated successfully');
     }
 
@@ -74,7 +80,7 @@ class WidgetController extends Controller
         
         if (!$widgetSettings) {
             return redirect()
-                ->route('widget.customize', $organization)
+                ->route('organization.widget.customize', $organization)
                 ->with('error', 'Please customize your widget first');
         }
 

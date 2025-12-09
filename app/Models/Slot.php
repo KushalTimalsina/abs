@@ -21,6 +21,8 @@ class Slot extends Model
 
     protected $casts = [
         'date' => 'date',
+        'start_time' => 'datetime:H:i:s',
+        'end_time' => 'datetime:H:i:s',
     ];
 
     /**
@@ -45,6 +47,14 @@ class Slot extends Model
     public function staff()
     {
         return $this->belongsTo(User::class, 'assigned_staff_id');
+    }
+
+    /**
+     * Get the booking for this slot (if any)
+     */
+    public function booking()
+    {
+        return $this->hasOne(Booking::class);
     }
 
     /**

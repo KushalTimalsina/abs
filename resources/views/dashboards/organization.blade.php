@@ -116,7 +116,7 @@
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Bookings</h3>
-                    <a href="{{ route('bookings.index', $organization) }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">View All</a>
+                    <a href="{{ route('organization.bookings.index', $organization) }}" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">View All</a>
                 </div>
             </div>
             <div class="p-4">
@@ -142,7 +142,7 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
             </div>
             <div class="p-4 space-y-3">
-                <a href="{{ route('bookings.create', $organization) }}" class="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+                <a href="{{ route('organization.bookings.create', $organization) }}" class="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
                     <svg class="w-6 h-6 text-blue-600 dark:text-blue-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"/>
                     </svg>
@@ -187,7 +187,7 @@
                             {{ $booking->booking_date->format('M d, Y') }} at {{ $booking->start_time->format('h:i A') }}
                         </p>
                     </div>
-                    <a href="{{ route('bookings.show', [$organization, $booking]) }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                    <a href="{{ route('organization.bookings.show', [$organization, $booking]) }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400">
                         View
                     </a>
                 </div>
