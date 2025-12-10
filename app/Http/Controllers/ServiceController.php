@@ -16,8 +16,25 @@ class ServiceController extends Controller
     {
         $this->authorize('view', $organization);
         
+        $query = $organization->services();
+        
+        // Sorting
+        $sortField = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+        
+        $allowedSortFields = ['id', 'name', 'price', 'duration', 'is_active', 'created_at'];
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'created_at';
+        }
+        
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
+        $query->orderBy($sortField, $sortDirection);
+        
         $perPage = $request->input('per_page', 15);
-        $services = $organization->services()->latest()->paginate($perPage)->withQueryString();
+        $services = $query->paginate($perPage)->withQueryString();
         
         return view('services.index', compact('organization', 'services'));
     }

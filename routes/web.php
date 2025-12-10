@@ -166,6 +166,11 @@ Route::middleware('auth')->group(function () {
         Route::put('/{organization}', [OrganizationController::class, 'update'])->name('update');
         Route::post('/{organization}/switch', [OrganizationController::class, 'switch'])->name('switch');
         
+        // Organization Settings
+        Route::get('/{organization}/settings', [\App\Http\Controllers\OrganizationSettingsController::class, 'index'])->name('settings');
+        Route::put('/{organization}/settings/booking-numbers', [\App\Http\Controllers\OrganizationSettingsController::class, 'updateBookingNumbers'])->name('settings.booking-numbers.update');
+        Route::post('/{organization}/settings/booking-numbers/preview', [\App\Http\Controllers\OrganizationSettingsController::class, 'previewBookingNumbers'])->name('settings.booking-numbers.preview');
+        
         // Service routes
         Route::prefix('{organization}/services')->name('services.')->group(function () {
             Route::get('/', [\App\Http\Controllers\ServiceController::class, 'index'])->name('index');
@@ -231,6 +236,14 @@ Route::middleware('auth')->group(function () {
             Route::put('/{booking}/confirm', [\App\Http\Controllers\BookingController::class, 'confirm'])->name('confirm');
             Route::put('/{booking}/complete', [\App\Http\Controllers\BookingController::class, 'complete'])->name('complete');
             Route::delete('/{booking}', [\App\Http\Controllers\BookingController::class, 'destroy'])->name('destroy');
+        });
+
+        // Search routes (Algorithm demonstration)
+        Route::prefix('{organization}/search')->name('search.')->group(function () {
+            Route::get('/demo', [\App\Http\Controllers\SearchController::class, 'demo'])->name('demo');
+            Route::post('/bookings', [\App\Http\Controllers\SearchController::class, 'searchBookings'])->name('bookings');
+            Route::post('/compare', [\App\Http\Controllers\SearchController::class, 'compareSearchPerformance'])->name('compare');
+            Route::post('/advanced', [\App\Http\Controllers\SearchController::class, 'advancedSearch'])->name('advanced');
         });
 
         // Slot routes

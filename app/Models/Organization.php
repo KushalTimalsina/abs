@@ -238,4 +238,172 @@ class Organization extends Model
         
         return $plan->online_payment_enabled ?? false;
     }
+
+    /**
+     * Get booking number mini slug for this organization
+     * 
+     * @return string
+     */
+    public function getBookingMiniSlug(): string
+    {
+        $bookingNumberService = app(\App\Services\BookingNumberService::class);
+        return $bookingNumberService->generateMiniSlug($this->name);
+    }
+
+    /**
+     * Get sample booking numbers for preview
+     * 
+     * @param int $count
+     * @param string|null $format
+     * @return array
+     */
+    public function getSampleBookingNumbers(int $count = 5, ?string $format = null): array
+    {
+        $bookingNumberService = app(\App\Services\BookingNumberService::class);
+        $format = $format ?? $bookingNumberService->getFormatPreference($this);
+        return $bookingNumberService->generateSamples($this, $count, $format);
+    }
+
+    /**
+     * Get booking number format preference
+     * 
+     * @return string 'dotted' or 'compact'
+     */
+    public function getBookingNumberFormat(): string
+    {
+        $bookingNumberService = app(\App\Services\BookingNumberService::class);
+        return $bookingNumberService->getFormatPreference($this);
+    }
+
+    /**
+     * Set booking number format preference
+     * 
+     * @param string $format 'dotted' or 'compact'
+     * @return void
+     */
+    public function setBookingNumberFormat(string $format): void
+    {
+        $bookingNumberService = app(\App\Services\BookingNumberService::class);
+        $bookingNumberService->setFormatPreference($this, $format);
+    }
+
+    /**
+     * Get booking number prefix
+     * 
+     * @return string
+     */
+    public function getBookingNumberPrefix(): string
+    {
+        $settings = $this->settings ?? [];
+        return $settings['booking_number_prefix'] ?? 'BN';
+    }
+
+    /**
+     * Set booking number prefix
+     * 
+     * @param string $prefix
+     * @return void
+     */
+    public function setBookingNumberPrefix(string $prefix): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['booking_number_prefix'] = strtoupper($prefix);
+        $this->update(['settings' => $settings]);
+    }
+
+    /**
+     * Get booking number starting number
+     * 
+     * @return int
+     */
+    public function getBookingNumberStart(): int
+    {
+        $settings = $this->settings ?? [];
+        return $settings['booking_number_start'] ?? 1;
+    }
+
+    /**
+     * Set booking number starting number
+     * 
+     * @param int $start
+     * @return void
+     */
+    public function setBookingNumberStart(int $start): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['booking_number_start'] = max(1, $start); // Ensure minimum is 1
+        $this->update(['settings' => $settings]);
+    }
+
+    /**
+     * Get master prefix
+     * 
+     * @return string
+     */
+    public function getMasterPrefix(): string
+    {
+        $settings = $this->settings ?? [];
+        return $settings['booking_number_master_prefix'] ?? 'BN';
+    }
+
+    /**
+     * Set master prefix
+     * 
+     * @param string $prefix
+     * @return void
+     */
+    public function setMasterPrefix(string $prefix): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['booking_number_master_prefix'] = strtoupper($prefix);
+        $this->update(['settings' => $settings]);
+    }
+
+    /**
+     * Get whether to show master prefix
+     * 
+     * @return bool
+     */
+    public function getShowMasterPrefix(): bool
+    {
+        $settings = $this->settings ?? [];
+        return $settings['booking_number_show_master'] ?? true;
+    }
+
+    /**
+     * Set whether to show master prefix
+     * 
+     * @param bool $show
+     * @return void
+     */
+    public function setShowMasterPrefix(bool $show): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['booking_number_show_master'] = $show;
+        $this->update(['settings' => $settings]);
+    }
+
+    /**
+     * Get center prefix
+     * 
+     * @return string
+     */
+    public function getCenterPrefix(): string
+    {
+        $settings = $this->settings ?? [];
+        return $settings['booking_number_center_prefix'] ?? '';
+    }
+
+    /**
+     * Set center prefix
+     * 
+     * @param string $prefix
+     * @return void
+     */
+    public function setCenterPrefix(string $prefix): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['booking_number_center_prefix'] = strtoupper($prefix);
+        $this->update(['settings' => $settings]);
+    }
 }

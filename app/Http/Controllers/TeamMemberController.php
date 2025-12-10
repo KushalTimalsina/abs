@@ -12,13 +12,36 @@ class TeamMemberController extends Controller
     /**
      * Display team members
      */
-    public function index(Organization $organization)
+    public function index(Organization $organization, Request $request)
     {
         $this->authorize('view', $organization);
         
-        $teamMembers = $organization->users()
-            ->withPivot('role', 'permissions', 'status', 'joined_at')
-            ->paginate(15);
+        $query = $organization->users()
+            ->withPivot('role', 'permissions', 'status', 'joined_at');
+        
+        // Sorting
+        $sortField = $request->input('sort', 'joined_at');
+        $sortDirection = $request->input('direction', 'desc');
+        
+        // For pivot table sorting, we need to use orderByPivot
+        $allowedSortFields = ['name', 'email', 'joined_at', 'role', 'status'];
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'joined_at';
+        }
+        
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
+        // Sort by pivot columns or user columns
+        if (in_array($sortField, ['joined_at', 'role', 'status'])) {
+            $query->orderByPivot($sortField, $sortDirection);
+        } else {
+            $query->orderBy($sortField, $sortDirection);
+        }
+        
+        $perPage = $request->input('per_page', 15);
+        $teamMembers = $query->paginate($perPage)->withQueryString();
             
         $pendingInvitations = $organization->teamInvitations()
             ->where('status', 'pending')

@@ -31,6 +31,17 @@ class BookingController extends Controller
         
         $query = $organization->bookings()->with(['customer', 'service', 'staff', 'slot']);
 
+        // Text Search Filter (Linear Search at database level)
+        if ($request->has('search') && $request->search != '') {
+            $searchTerm = $request->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('booking_number', 'LIKE', '%' . $searchTerm . '%')
+                  ->orWhere('customer_name', 'LIKE', '%' . $searchTerm . '%')
+                  ->orWhere('customer_email', 'LIKE', '%' . $searchTerm . '%')
+                  ->orWhere('customer_phone', 'LIKE', '%' . $searchTerm . '%');
+            });
+        }
+
         // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -49,8 +60,25 @@ class BookingController extends Controller
             $query->where('staff_id', $request->staff_id);
         }
 
+        // Sorting
+        $sortField = $request->input('sort', 'created_at'); // Default sort by created_at
+        $sortDirection = $request->input('direction', 'desc'); // Default descending (latest first)
+        
+        // Validate sort field
+        $allowedSortFields = ['id', 'booking_number', 'customer_name', 'booking_date', 'status', 'payment_status', 'created_at'];
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'created_at';
+        }
+        
+        // Validate sort direction
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
+        $query->orderBy($sortField, $sortDirection);
+
         $perPage = $request->input('per_page', 20);
-        $bookings = $query->latest('booking_date')->paginate($perPage)->withQueryString();
+        $bookings = $query->paginate($perPage)->withQueryString();
         
         return view('bookings.index', compact('organization', 'bookings'));
     }

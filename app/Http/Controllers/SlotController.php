@@ -22,18 +22,38 @@ class SlotController extends Controller
     {
         $this->authorize('view', $organization);
         
-        // Load slots for the current week
-        $startOfWeek = now()->startOfWeek();
-        $endOfWeek = now()->endOfWeek();
+        // Date range filter (default: current week)
+        $startDate = $request->input('start_date', now()->startOfWeek()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->endOfWeek()->format('Y-m-d'));
         
-        $slots = $organization->slots()
+        $query = $organization->slots()
             ->with(['shift', 'booking', 'staff'])
-            ->whereBetween('date', [$startOfWeek->format('Y-m-d'), $endOfWeek->format('Y-m-d')])
-            ->orderBy('date')
-            ->orderBy('start_time')
-            ->get();
+            ->whereBetween('date', [$startDate, $endDate]);
         
-        return view('slots.index', compact('organization', 'slots'));
+        // Sorting
+        $sortField = $request->input('sort', 'date');
+        $sortDirection = $request->input('direction', 'desc');
+        
+        $allowedSortFields = ['id', 'date', 'start_time', 'status', 'created_at'];
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'date';
+        }
+        
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
+        $query->orderBy($sortField, $sortDirection);
+        
+        // Secondary sort by start_time if sorting by date
+        if ($sortField === 'date') {
+            $query->orderBy('start_time', $sortDirection);
+        }
+        
+        $perPage = $request->input('per_page', 20);
+        $slots = $query->paginate($perPage)->withQueryString();
+        
+        return view('slots.index', compact('organization', 'slots', 'startDate', 'endDate'));
     }
 
     /**

@@ -13,16 +13,34 @@ class ShiftController extends Controller
     /**
      * Display shifts
      */
-    public function index(Organization $organization)
+    public function index(Organization $organization, Request $request)
     {
         $this->authorize('view', $organization);
         
-        $shifts = $organization->shifts()
-            ->with('user')
-            ->orderBy('day_of_week')
-            ->orderBy('start_time')
-            ->get()
-            ->groupBy('user_id');
+        $query = $organization->shifts()->with('user');
+        
+        // Sorting
+        $sortField = $request->input('sort', 'day_of_week');
+        $sortDirection = $request->input('direction', 'asc');
+        
+        $allowedSortFields = ['id', 'day_of_week', 'start_time', 'end_time', 'created_at'];
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'day_of_week';
+        }
+        
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
+        
+        $query->orderBy($sortField, $sortDirection);
+        
+        // Secondary sort by start_time if sorting by day
+        if ($sortField === 'day_of_week') {
+            $query->orderBy('start_time', 'asc');
+        }
+        
+        // Get all shifts (not paginated) since we're grouping by user
+        $shifts = $query->get()->groupBy('user_id');
             
         $teamMembers = $organization->users()
             ->wherePivot('status', 'active')

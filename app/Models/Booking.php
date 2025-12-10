@@ -42,7 +42,22 @@ class Booking extends Model
         
         static::creating(function ($booking) {
             if (empty($booking->booking_number)) {
-                $booking->booking_number = 'BK-' . strtoupper(uniqid());
+                // Use BookingNumberService to generate human-readable booking number
+                $bookingNumberService = app(\App\Services\BookingNumberService::class);
+                
+                // Get organization
+                $organization = $booking->organization ?? \App\Models\Organization::find($booking->organization_id);
+                
+                if ($organization) {
+                    // Get format preference from organization settings (dotted or compact)
+                    $format = $bookingNumberService->getFormatPreference($organization);
+                    
+                    // Generate booking number: BN.AVP.00001 or BNAVP00001
+                    $booking->booking_number = $bookingNumberService->generate($organization, $format);
+                } else {
+                    // Fallback to old format if organization not found
+                    $booking->booking_number = 'BK-' . strtoupper(uniqid());
+                }
             }
         });
     }

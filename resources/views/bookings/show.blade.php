@@ -1,9 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                Booking #{{ $booking->id }} - {{ $organization->name }}
-            </h2>
+            <div>
+                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+                    {{ $booking->booking_number }} - {{ $organization->name }}
+                </h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Booking ID: #{{ $booking->id }}</p>
+            </div>
             <a href="{{ route('organization.bookings.index', $organization) }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
                 ← Back to Bookings
             </a>
@@ -22,8 +25,8 @@
                             
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">Booking ID</p>
-                                    <p class="font-medium text-gray-900 dark:text-white">#{{ $booking->id }}</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Booking Number</p>
+                                    <p class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ $booking->booking_number }}</p>
                                 </div>
                                 <div>
                                     <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>

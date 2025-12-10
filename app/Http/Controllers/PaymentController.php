@@ -358,7 +358,23 @@ class PaymentController extends Controller
             $query->whereDate('created_at', '<=', $request->end_date);
         }
 
-        $payments = $query->latest()->paginate(20)->withQueryString();
+        // Sorting
+        $sortField = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+        
+        $allowedSortFields = ['id', 'amount', 'payment_method', 'status', 'created_at'];
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'created_at';
+        }
+        
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
+        $query->orderBy($sortField, $sortDirection);
+
+        $perPage = $request->input('per_page', 20);
+        $payments = $query->paginate($perPage)->withQueryString();
 
         return view('payments.index', compact('organization', 'payments'));
     }
