@@ -135,6 +135,16 @@ Route::middleware(['superadmin'])->prefix('superadmin')->name('superadmin.')->gr
         Route::post('/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
         Route::delete('/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
     });
+
+    // Queue management routes
+    Route::prefix('queue')->name('queue.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Superadmin\QueueController::class, 'index'])->name('index');
+        Route::post('/retry/{id}', [\App\Http\Controllers\Superadmin\QueueController::class, 'retry'])->name('retry');
+        Route::post('/retry-all', [\App\Http\Controllers\Superadmin\QueueController::class, 'retryAll'])->name('retry-all');
+        Route::post('/forget/{id}', [\App\Http\Controllers\Superadmin\QueueController::class, 'forget'])->name('forget');
+        Route::post('/clear', [\App\Http\Controllers\Superadmin\QueueController::class, 'clear'])->name('clear');
+        Route::post('/flush', [\App\Http\Controllers\Superadmin\QueueController::class, 'flush'])->name('flush');
+    });
 });
 
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
@@ -157,7 +167,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{organization}/switch', [OrganizationController::class, 'switch'])->name('switch');
         
         // Service routes
-        Route::prefix('{organization}/services')->name('services.')->scopedBindings()->group(function () {
+        Route::prefix('{organization}/services')->name('services.')->group(function () {
             Route::get('/', [\App\Http\Controllers\ServiceController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\ServiceController::class, 'create'])->name('create');
             Route::post('/', [\App\Http\Controllers\ServiceController::class, 'store'])->name('store');
@@ -245,6 +255,8 @@ Route::middleware('auth')->group(function () {
         // Payment routes
         Route::prefix('{organization}/payments')->name('payments.')->group(function () {
             Route::get('/', [\App\Http\Controllers\PaymentController::class, 'index'])->name('index');
+            Route::get('/{payment}/detail', [\App\Http\Controllers\PaymentController::class, 'showDetail'])->name('show-detail');
+            Route::post('/{payment}/verify', [\App\Http\Controllers\PaymentController::class, 'verifyPayment'])->name('verify');
             Route::get('/bookings/{booking}', [\App\Http\Controllers\PaymentController::class, 'show'])->name('show');
             Route::post('/bookings/{booking}/initiate', [\App\Http\Controllers\PaymentController::class, 'initiate'])->name('initiate');
             Route::post('/bookings/{booking}/cash', [\App\Http\Controllers\PaymentController::class, 'processCash'])->name('cash');

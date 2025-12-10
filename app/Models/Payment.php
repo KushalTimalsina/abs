@@ -11,17 +11,25 @@ class Payment extends Model
 
     protected $fillable = [
         'booking_id',
+        'organization_id',
         'amount',
+        'payment_method',
         'gateway_type',
         'transaction_id',
+        'payment_proof',
         'payment_data',
         'status',
         'paid_at',
+        'payment_date',
+        'verified_at',
+        'verified_by',
     ];
 
     protected $casts = [
         'payment_data' => 'array',
         'paid_at' => 'datetime',
+        'payment_date' => 'datetime',
+        'verified_at' => 'datetime',
     ];
 
     /**
@@ -30,6 +38,14 @@ class Payment extends Model
     public function booking()
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    /**
+     * Get the organization this payment belongs to
+     */
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
     }
 
     /**

@@ -56,10 +56,18 @@ class PaymentController extends Controller
         }
 
         $validated = $request->validate([
-            'gateway' => ['required', 'in:esewa,khalti,stripe'],
+            'gateway' => ['required', 'in:esewa,khalti,stripe,bank_transfer'],
+            'payment_proof' => ['required_if:gateway,esewa,bank_transfer', 'image', 'max:2048'],
+            'transaction_id' => ['nullable', 'string', 'max:255'],
         ]);
 
         try {
+            // Handle manual payment methods (eSewa and Bank Transfer)
+            if (in_array($validated['gateway'], ['esewa', 'bank_transfer'])) {
+                return $this->handleManualPayment($request, $organization, $booking, $validated);
+            }
+
+            // Handle online payment gateways (Khalti and Stripe)
             $paymentData = $this->paymentService->initiatePayment($booking, $validated['gateway']);
 
             if ($paymentData['type'] === 'redirect') {
@@ -76,6 +84,50 @@ class PaymentController extends Controller
             return redirect()
                 ->back()
                 ->with('error', 'Failed to initiate payment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Handle manual payment (eSewa and Bank Transfer)
+     */
+    protected function handleManualPayment(Request $request, Organization $organization, Booking $booking, array $validated)
+    {
+        DB::beginTransaction();
+        try {
+            // Upload payment proof
+            $proofPath = null;
+            if ($request->hasFile('payment_proof')) {
+                $proofPath = $request->file('payment_proof')->store('payment-proofs', 'public');
+            }
+
+            // Create payment record
+            $payment = Payment::create([
+                'booking_id' => $booking->id,
+                'organization_id' => $organization->id,
+                'amount' => $booking->service->price ?? 0,
+                'payment_method' => $validated['gateway'],
+                'transaction_id' => $validated['transaction_id'] ?? null,
+                'payment_proof' => $proofPath,
+                'status' => 'pending', // Pending verification
+                'payment_date' => now(),
+            ]);
+
+            // Update booking payment status
+            $booking->update([
+                'payment_status' => 'pending',
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('organization.bookings.show', [$organization, $booking])
+                ->with('success', 'Payment proof uploaded successfully. Awaiting verification.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()
+                ->back()
+                ->with('error', 'Failed to process payment: ' . $e->getMessage());
         }
     }
 
@@ -214,6 +266,73 @@ class PaymentController extends Controller
 
     /**
      * View payment history
+     */
+    /**
+     * Show payment details
+     */
+    public function showDetail(Organization $organization, $paymentId)
+    {
+        $this->authorize('view', $organization);
+
+        // Find payment within this organization
+        $payment = $organization->payments()->findOrFail($paymentId);
+
+        $payment->load(['booking.customer', 'booking.service', 'booking.staff']);
+
+        return view('payments.detail', compact('organization', 'payment'));
+    }
+
+    /**
+     * Verify manual payment
+     */
+    public function verifyPayment(Request $request, Organization $organization, $paymentId)
+    {
+        $this->authorize('view', $organization);
+
+        // Find payment within this organization
+        $payment = $organization->payments()->findOrFail($paymentId);
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:completed,failed'],
+            'admin_notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Update payment status
+            $payment->update([
+                'status' => $validated['status'],
+                'verified_at' => now(),
+                'verified_by' => auth()->id(),
+            ]);
+
+            // Update booking payment status
+            if ($payment->booking) {
+                $payment->booking->update([
+                    'payment_status' => $validated['status'] === 'completed' ? 'paid' : 'unpaid',
+                ]);
+            }
+
+            DB::commit();
+
+            $message = $validated['status'] === 'completed' 
+                ? 'Payment verified and marked as completed'
+                : 'Payment marked as failed';
+
+            return redirect()
+                ->route('organization.payments.index', $organization)
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()
+                ->back()
+                ->with('error', 'Failed to verify payment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * List all payments
      */
     public function index(Organization $organization, Request $request)
     {

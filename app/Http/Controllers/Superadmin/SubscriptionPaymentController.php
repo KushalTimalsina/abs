@@ -81,18 +81,44 @@ class SubscriptionPaymentController extends Controller
         // Activate the organization
         $payment->organization->update(['status' => 'active']);
 
-        // Send subscription confirmation email (queued)
-        \Mail::to($payment->organization->email ?? $payment->organization->users->first()->email)
-            ->queue(new \App\Mail\SubscriptionConfirmation($payment->organization, $subscription));
+        // Send subscription confirmation email (queued) - with error handling
+        try {
+            // Get organization owner email
+            $recipientEmail = $payment->organization->email;
+            
+            // If organization doesn't have email, get from first admin user
+            if (!$recipientEmail) {
+                $adminUser = $payment->organization->users()
+                    ->wherePivot('role', 'admin')
+                    ->first();
+                    
+                if ($adminUser) {
+                    $recipientEmail = $adminUser->email;
+                }
+            }
+            
+            if ($recipientEmail) {
+                \Mail::to($recipientEmail)
+                    ->queue(new \App\Mail\SubscriptionConfirmation($payment->organization, $subscription));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send subscription confirmation email: ' . $e->getMessage());
+            // Continue anyway - email failure shouldn't block verification
+        }
 
         // Auto-generate invoice
-        $invoiceService = app(InvoiceService::class);
-        if (!$invoiceService->hasSubscriptionInvoice($payment)) {
-            $invoiceService->generateSubscriptionInvoice($payment);
+        try {
+            $invoiceService = app(InvoiceService::class);
+            if (!$invoiceService->hasSubscriptionInvoice($payment)) {
+                $invoiceService->generateSubscriptionInvoice($payment);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to generate invoice: ' . $e->getMessage());
+            // Continue anyway
         }
 
         return redirect()->back()
-            ->with('success', 'Payment verified, subscription activated, and confirmation email sent');
+            ->with('success', 'Payment verified and subscription activated successfully!');
     }
 
     /**

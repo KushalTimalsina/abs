@@ -2,8 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\Organization;
-use App\Models\OrganizationSubscription;
+use App\Models\Booking;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -11,20 +10,18 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class SubscriptionConfirmation extends Mailable implements ShouldQueue
+class BookingConfirmation extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public $organization;
-    public $subscription;
+    public $booking;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Organization $organization, OrganizationSubscription $subscription)
+    public function __construct(Booking $booking)
     {
-        $this->organization = $organization;
-        $this->subscription = $subscription;
+        $this->booking = $booking;
     }
 
     /**
@@ -33,7 +30,7 @@ class SubscriptionConfirmation extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Subscription Confirmation - ' . config('app.name'),
+            subject: 'Booking Confirmation - ' . $this->booking->booking_number,
         );
     }
 
@@ -43,7 +40,7 @@ class SubscriptionConfirmation extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.subscription-confirmation',
+            view: 'emails.booking-confirmation',
         );
     }
 

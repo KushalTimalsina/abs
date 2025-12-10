@@ -163,19 +163,35 @@ class WidgetApiController extends Controller
         );
 
         try {
+            // Get the booking date
+            $bookingDate = $slot->date instanceof \Carbon\Carbon ? $slot->date : Carbon::parse($slot->date);
+            
+            // Create full datetime by combining date with time
+            // Extract time components from slot times
+            $startTime = $slot->start_time instanceof \Carbon\Carbon 
+                ? $slot->start_time->format('H:i:s') 
+                : $slot->start_time;
+            $endTime = $slot->end_time instanceof \Carbon\Carbon 
+                ? $slot->end_time->format('H:i:s') 
+                : $slot->end_time;
+            
+            // Create full datetime objects
+            $startDateTime = Carbon::parse($bookingDate->format('Y-m-d') . ' ' . $startTime);
+            $endDateTime = Carbon::parse($bookingDate->format('Y-m-d') . ' ' . $endTime);
+            
             // Create booking
             $booking = Booking::create([
                 'organization_id' => $organization->id,
-                'service_id' => $request->service_id, // Store service ID from widget
+                'service_id' => $request->service_id,
                 'slot_id' => $slot->id,
                 'customer_id' => $customer->id,
                 'staff_id' => $slot->assigned_staff_id,
                 'customer_name' => $request->customer_name,
                 'customer_email' => $request->customer_email,
                 'customer_phone' => $request->customer_phone,
-                'booking_date' => $slot->date,
-                'start_time' => $slot->start_time,
-                'end_time' => $slot->end_time,
+                'booking_date' => $bookingDate,
+                'start_time' => $startDateTime,
+                'end_time' => $endDateTime,
                 'status' => 'pending',
                 'payment_status' => 'unpaid',
                 'customer_notes' => $request->notes,
@@ -188,6 +204,18 @@ class WidgetApiController extends Controller
 
             // Track booking conversion
             $this->trackAnalytics($organization, 'booking');
+            
+            // Send booking confirmation email (queued)
+            try {
+                \Mail::to($booking->customer_email)
+                    ->queue(new \App\Mail\BookingConfirmation($booking));
+            } catch (\Exception $e) {
+                \Log::error('Failed to queue booking confirmation email', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // Don't fail the booking if email fails
+            }
 
             return response()->json([
                 'success' => true,
@@ -197,17 +225,30 @@ class WidgetApiController extends Controller
                     'booking_number' => $booking->booking_number,
                     'service' => $organization->name . ' Booking',
                     'date' => $booking->booking_date->format('l, F d, Y'),
-                    'time' => $booking->start_time . ' - ' . $booking->end_time,
+                    'time' => $booking->start_time->format('h:i A') . ' - ' . $booking->end_time->format('h:i A'),
                     'status' => $booking->status,
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Booking creation failed: ' . $e->getMessage(),
+            // Log the error
+            \Log::error('Widget booking creation failed', [
                 'error' => $e->getMessage(),
                 'line' => $e->getLine(),
-                'file' => basename($e->getFile()),
+                'file' => $e->getFile(),
+                'trace' => $e->getTraceAsString(),
+                'organization_id' => $organization->id,
+                'service_id' => $request->service_id,
+                'slot_id' => $request->slot_id,
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating your booking. Please try again or contact support.',
+                'debug' => config('app.debug') ? [
+                    'error' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                    'file' => basename($e->getFile()),
+                ] : null,
             ], 500);
         }
     }

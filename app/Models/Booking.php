@@ -96,6 +96,14 @@ class Booking extends Model
     }
 
     /**
+     * Get all payments for this booking (alias for payment)
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
      * Get invoice for this booking
      */
     public function invoice()
