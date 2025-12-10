@@ -93,7 +93,19 @@
                         return;
                     }
                     
-                    // Poll for popup close and reload
+                    // Listen for messages from the popup
+                    window.addEventListener('message', function handleAuthMessage(event) {
+                        // Verify the message is from our auth callback
+                        if (event.data && event.data.type === 'google-auth-complete') {
+                            // Remove the event listener
+                            window.removeEventListener('message', handleAuthMessage);
+                            
+                            // Reload the page to show logged-in state
+                            window.location.reload();
+                        }
+                    });
+                    
+                    // Fallback: Poll for popup close and reload
                     const checkPopup = setInterval(function() {
                         if (popup.closed) {
                             clearInterval(checkPopup);

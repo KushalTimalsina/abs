@@ -172,9 +172,13 @@ class WidgetAuthController extends Controller
             // Get organization slug from session
             $orgSlug = session('widget_organization', 'default');
             session()->forget('widget_organization');
+            session()->forget('from_widget');
             
-            // Redirect back to widget
-            return redirect("/widget/{$orgSlug}");
+            // Return a view that closes the popup and refreshes parent
+            return view('auth.google-callback-success', [
+                'success' => true,
+                'message' => 'Successfully logged in with Google'
+            ]);
             
         } catch (\Exception $e) {
             \Log::error('Widget Google OAuth Error: ' . $e->getMessage());
@@ -182,8 +186,13 @@ class WidgetAuthController extends Controller
             
             $orgSlug = session('widget_organization', 'default');
             session()->forget('widget_organization');
+            session()->forget('from_widget');
             
-            return redirect("/widget/{$orgSlug}")->with('error', 'Failed to authenticate with Google: ' . $e->getMessage());
+            // Return a view that closes the popup with error
+            return view('auth.google-callback-success', [
+                'success' => false,
+                'message' => 'Failed to authenticate with Google: ' . $e->getMessage()
+            ]);
         }
     }
 }

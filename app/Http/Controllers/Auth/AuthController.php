@@ -56,7 +56,12 @@ class AuthController extends Controller
             if (session('from_widget')) {
                 $orgSlug = session('widget_organization', 'default');
                 session()->forget(['widget_organization', 'from_widget']);
-                return redirect("/widget/{$orgSlug}");
+                
+                // Return a view that closes the popup and refreshes parent
+                return view('auth.google-callback-success', [
+                    'success' => true,
+                    'message' => 'Successfully logged in with Google'
+                ]);
             }
             
             return redirect()->intended('dashboard');
@@ -72,7 +77,12 @@ class AuthController extends Controller
             if (session('from_widget')) {
                 $orgSlug = session('widget_organization', 'default');
                 session()->forget(['widget_organization', 'from_widget']);
-                return redirect("/widget/{$orgSlug}")->with('error', 'Failed to authenticate with Google');
+                
+                // Return a view that closes the popup with error
+                return view('auth.google-callback-success', [
+                    'success' => false,
+                    'message' => 'Failed to authenticate with Google'
+                ]);
             }
             
             return redirect()->route('login')->with('error', 'Failed to authenticate with Google. Please try again. Error: ' . $e->getMessage());
