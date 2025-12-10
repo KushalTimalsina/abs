@@ -45,7 +45,7 @@ class PaymentSettingsSeeder extends Seeder
             ],
             [
                 'gateway' => 'stripe',
-                'is_active' => false,
+                'is_active' => true,
                 'account_details' => [
                     'currency' => 'usd',
                     'description' => 'Pay securely with your credit/debit card',

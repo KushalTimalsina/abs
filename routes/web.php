@@ -22,6 +22,71 @@ Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('h
 // Credits Page (accessible to everyone)
 Route::get('/credits', [\App\Http\Controllers\HomeController::class, 'credits'])->name('credits');
 
+// DEBUG: Test slot generation (remove in production)
+Route::get('/debug-slots/{organization}', function($organizationSlug) {
+    $organization = \App\Models\Organization::where('slug', $organizationSlug)->firstOrFail();
+    $service = $organization->services()->first();
+    
+    if (!$service) {
+        return response()->json(['error' => 'No services found']);
+    }
+    
+    $slotService = app(\App\Services\SlotGenerationService::class);
+    $today = \Carbon\Carbon::today();
+    $dayOfWeek = $today->dayOfWeek;
+    
+    $shifts = $organization->shifts()
+        ->where('is_active', true)
+        ->where(function($q) use ($dayOfWeek, $today) {
+            $q->where(function($query) use ($dayOfWeek) {
+                $query->where('is_recurring', true)
+                      ->where('day_of_week', $dayOfWeek);
+            })
+            ->orWhere(function($query) use ($today) {
+                $query->where('is_recurring', false)
+                      ->whereDate('specific_date', $today);
+            });
+        })
+        ->get();
+    
+    $allSlots = collect();
+    $shiftDetails = [];
+    
+    foreach ($shifts as $shift) {
+        $slots = $slotService->generateSlotsForShift($organization, $service, $shift, $today);
+        $allSlots = $allSlots->merge($slots);
+        
+        $shiftDetails[] = [
+            'id' => $shift->id,
+            'start_time' => $shift->start_time,
+            'end_time' => $shift->end_time,
+            'user_id' => $shift->user_id,
+            'day_of_week' => $shift->day_of_week,
+            'is_recurring' => $shift->is_recurring,
+            'slots_generated' => $slots->count(),
+        ];
+    }
+    
+    return response()->json([
+        'date' => $today->toDateString(),
+        'day_of_week' => $dayOfWeek,
+        'service' => [
+            'id' => $service->id,
+            'name' => $service->name,
+            'duration' => $service->duration,
+        ],
+        'shifts_found' => $shifts->count(),
+        'shifts' => $shiftDetails,
+        'total_slots_generated' => $allSlots->count(),
+        'slots' => $allSlots->map(fn($s) => [
+            'id' => $s->id ?? 'new',
+            'start_time' => $s->start_time,
+            'end_time' => $s->end_time,
+            'staff_id' => $s->assigned_staff_id,
+        ])->values(),
+    ]);
+});
+
 // Superadmin authentication routes
 Route::prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/login', [\App\Http\Controllers\Auth\SuperadminAuthController::class, 'showLoginForm'])->name('login');

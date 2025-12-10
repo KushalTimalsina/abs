@@ -85,6 +85,15 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get services this team member can provide
+     */
+    public function services()
+    {
+        return $this->belongsToMany(Service::class, 'service_user')
+            ->withTimestamps();
+    }
+
+    /**
      * Check if user has a specific role in an organization
      */
     public function hasRole(int $organizationId, string $role): bool

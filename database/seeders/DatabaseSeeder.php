@@ -16,8 +16,8 @@ class DatabaseSeeder extends Seeder
         $this->call(SuperadminSeeder::class);
         $this->call(PaymentSettingsSeeder::class);
         $this->call(SubscriptionPlanSeeder::class);
-        $this->call(TestUsersSeeder::class);
-        
+        // $this->call(TestUsersSeeder::class);
+
         // \App\Models\User::factory(10)->create();
 
         // \App\Models\User::factory()->create([

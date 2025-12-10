@@ -44,50 +44,27 @@ class SlotController extends Controller
         $this->authorize('update', $organization);
         
         $validated = $request->validate([
+            'service_id' => ['required', 'exists:services,id'],
             'start_date' => ['required', 'date', 'after_or_equal:today'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ]);
 
         try {
+            $service = Service::findOrFail($validated['service_id']);
             $startDate = Carbon::parse($validated['start_date']);
             $endDate = Carbon::parse($validated['end_date']);
             
-            // Get all active shifts for the organization
-            $shifts = $organization->shifts()->where('is_active', true)->get();
-            
-            if ($shifts->isEmpty()) {
-                return redirect()
-                    ->back()
-                    ->with('error', 'No active shifts found. Please create shifts first.');
-            }
-            
-            $slotsCreated = 0;
-            
-            // Generate slots for each day in the range
-            for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
-                $dayOfWeek = $date->dayOfWeek;
-                
-                // Get shifts for this day of week
-                $dayShifts = $shifts->where('day_of_week', $dayOfWeek);
-                
-                foreach ($dayShifts as $shift) {
-                    // Create slot for this shift
-                    Slot::create([
-                        'shift_id' => $shift->id,
-                        'organization_id' => $organization->id,
-                        'date' => $date->format('Y-m-d'),
-                        'start_time' => $shift->start_time,
-                        'end_time' => $shift->end_time,
-                        'assigned_staff_id' => $shift->user_id,
-                        'status' => 'available',
-                    ]);
-                    $slotsCreated++;
-                }
-            }
+            // Use SlotGenerationService to generate slots
+            $slots = $this->slotService->generateSlots(
+                $organization,
+                $service,
+                $startDate,
+                $endDate
+            );
 
             return redirect()
-                ->route('slots.index', $organization)
-                ->with('success', "Generated {$slotsCreated} slots successfully");
+                ->route('organization.slots.index', $organization)
+                ->with('success', "Generated {$slots->count()} slots successfully");
                 
         } catch (\Exception $e) {
             return redirect()

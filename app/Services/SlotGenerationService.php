@@ -80,7 +80,7 @@ class SlotGenerationService
     /**
      * Generate slots for a specific shift
      */
-    protected function generateSlotsForShift(
+    public function generateSlotsForShift(
         Organization $organization,
         Service $service,
         Shift $shift,
@@ -88,15 +88,29 @@ class SlotGenerationService
     ): Collection {
         $slots = collect();
         
-        $shiftStart = Carbon::parse($date->toDateString() . ' ' . $shift->start_time);
-        $shiftEnd = Carbon::parse($date->toDateString() . ' ' . $shift->end_time);
+        // Parse shift times properly - handle both time strings and datetime
+        $shiftStartTime = $shift->start_time instanceof \Carbon\Carbon 
+            ? $shift->start_time->format('H:i:s') 
+            : $shift->start_time;
+        $shiftEndTime = $shift->end_time instanceof \Carbon\Carbon 
+            ? $shift->end_time->format('H:i:s') 
+            : $shift->end_time;
+            
+        $shiftStart = Carbon::parse($date->toDateString() . ' ' . $shiftStartTime);
+        $shiftEnd = Carbon::parse($date->toDateString() . ' ' . $shiftEndTime);
         
         $currentTime = $shiftStart->copy();
         $slotDuration = $service->duration; // in minutes
 
-        while ($currentTime->copy()->addMinutes($slotDuration)->lte($shiftEnd)) {
+        // Generate slots from shift start to end
+        while ($currentTime->lt($shiftEnd)) {
             $slotStart = $currentTime->copy();
             $slotEnd = $currentTime->copy()->addMinutes($slotDuration);
+            
+            // Don't create slot if it would end after shift end
+            if ($slotEnd->gt($shiftEnd)) {
+                break;
+            }
 
             // Check if slot already exists
             $existingSlot = Slot::where('organization_id', $organization->id)
@@ -109,11 +123,13 @@ class SlotGenerationService
             if (!$existingSlot) {
                 // Create new slot
                 $slot = Slot::create([
+                    'shift_id' => $shift->id,
                     'organization_id' => $organization->id,
                     'service_id' => $service->id,
+                    'date' => $date->format('Y-m-d'),
                     'assigned_staff_id' => $shift->user_id,
-                    'start_time' => $slotStart,
-                    'end_time' => $slotEnd,
+                    'start_time' => $slotStart->format('H:i:s'),
+                    'end_time' => $slotEnd->format('H:i:s'),
                     'status' => 'available',
                     'max_bookings' => 1,
                     'current_bookings' => 0,
@@ -124,6 +140,7 @@ class SlotGenerationService
                 $slots->push($existingSlot);
             }
 
+            // Move to next slot
             $currentTime->addMinutes($slotDuration);
         }
 

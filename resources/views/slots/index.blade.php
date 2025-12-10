@@ -14,40 +14,61 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             
-            <!-- Calendar View -->
+            <!-- Compact Calendar View -->
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Availability Calendar</h3>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="previousWeek()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                                </svg>
-                            </button>
-                            <span class="text-sm font-medium" id="weekDisplay">{{ date('M d, Y') }} - {{ date('M d, Y', strtotime('+6 days')) }}</span>
-                            <button onclick="nextWeek()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
-                            </button>
+                        <div class="flex items-center space-x-4">
+                            <!-- Legend -->
+                            <div class="flex items-center space-x-3 text-xs">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-green-500 rounded mr-1"></div>
+                                    <span>Available</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-blue-500 rounded mr-1"></div>
+                                    <span>Booked</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-gray-400 rounded mr-1"></div>
+                                    <span>Blocked</span>
+                                </div>
+                            </div>
+                            <!-- Week Navigation -->
+                            <div class="flex items-center space-x-2">
+                                <button onclick="previousWeek()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                    </svg>
+                                </button>
+                                <span class="text-sm font-medium" id="weekDisplay">{{ date('M d, Y') }} - {{ date('M d, Y', strtotime('+6 days')) }}</span>
+                                <button onclick="nextWeek()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Calendar Grid -->
-                    <div class="grid grid-cols-7 gap-2">
+                    <!-- Compact Calendar Grid -->
+                    <div class="grid grid-cols-7 gap-4">
                         @php
-                            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                            $startDate = now()->startOfWeek();
+                            $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                            $startDate = now()->startOfWeek()->subDay(); // Start from Sunday
                         @endphp
                         
                         @foreach($days as $index => $day)
-                        <div class="text-center">
-                            <div class="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">
-                                {{ $day }}
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                                {{ $startDate->copy()->addDays($index)->format('M d') }}
+                        <div class="border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-400 transition-colors">
+                            <!-- Day Header -->
+                            <div class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 px-4 py-3 border-b-2 border-gray-200 dark:border-gray-600">
+                                <div class="font-bold text-base text-gray-800 dark:text-gray-200">
+                                    {{ $day }}
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                    {{ $startDate->copy()->addDays($index)->format('M d') }}
+                                </div>
                             </div>
                             
                             @php
@@ -55,26 +76,68 @@
                                 $daySlots = $slots->filter(function($slot) use ($currentDate) {
                                     return \Carbon\Carbon::parse($slot->date)->isSameDay($currentDate);
                                 });
+                                $groupedSlots = $daySlots->groupBy('status');
                             @endphp
                             
-                            <div class="space-y-1">
-                                @forelse($daySlots as $slot)
-                                <div class="text-xs p-2 rounded {{ $slot->status === 'available' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ($slot->status === 'booked' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : ($slot->status === 'rescheduled' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400')) }}">
-                                    <div class="font-medium">{{ $slot->start_time->format('h:i A') }}</div>
-                                    @if($slot->status === 'booked')
-                                    <div class="text-xs">Booked</div>
-                                    @else
-                                    <form method="POST" action="{{ route('organization.slots.toggle', [$organization, $slot]) }}" class="inline">
-                                        @csrf
-                                        <button type="submit" class="text-xs underline hover:no-underline">
-                                            {{ $slot->status === 'available' ? 'Block' : 'Unblock' }}
-                                        </button>
-                                    </form>
-                                    @endif
-                                </div>
-                                @empty
-                                <div class="text-xs text-gray-400 p-2">No slots</div>
-                                @endforelse
+                            <!-- Slots Summary -->
+                            <div class="p-4 space-y-3 min-h-[200px] max-h-[400px] overflow-y-auto">
+                                @if($daySlots->count() > 0)
+                                    <!-- Summary Badges -->
+                                    <div class="flex flex-wrap gap-2 mb-3">
+                                        @if($groupedSlots->has('available'))
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                            {{ $groupedSlots->get('available')->count() }} Available
+                                        </span>
+                                        @endif
+                                        @if($groupedSlots->has('booked'))
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                            {{ $groupedSlots->get('booked')->count() }} Booked
+                                        </span>
+                                        @endif
+                                        @if($groupedSlots->has('unavailable'))
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                            {{ $groupedSlots->get('unavailable')->count() }} Blocked
+                                        </span>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- Expandable Slot List -->
+                                    <details class="group">
+                                        <summary class="cursor-pointer text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                                            <svg class="w-4 h-4 mr-1 group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                            View {{ $daySlots->count() }} slots
+                                        </summary>
+                                        <div class="mt-3 space-y-2">
+                                            @foreach($daySlots->take(20) as $slot)
+                                            <div class="flex items-center justify-between text-sm p-2.5 rounded-md {{ $slot->status === 'available' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : ($slot->status === 'booked' ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' : 'bg-gray-50 dark:bg-gray-700/20 border border-gray-200 dark:border-gray-600') }}">
+                                                <span class="font-semibold">{{ \Carbon\Carbon::parse($slot->start_time)->format('h:i A') }}</span>
+                                                @if($slot->status !== 'booked')
+                                                <form method="POST" action="{{ route('organization.slots.toggle', [$organization, $slot]) }}" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="text-lg hover:scale-125 transition-transform" title="{{ $slot->status === 'available' ? 'Block this slot' : 'Unblock this slot' }}">
+                                                        {{ $slot->status === 'available' ? '🚫' : '✅' }}
+                                                    </button>
+                                                </form>
+                                                @else
+                                                <span class="text-lg">📅</span>
+                                                @endif
+                                            </div>
+                                            @endforeach
+                                            @if($daySlots->count() > 20)
+                                            <div class="text-sm text-gray-500 text-center py-2 font-medium">
+                                                +{{ $daySlots->count() - 20 }} more slots
+                                            </div>
+                                            @endif
+                                        </div>
+                                    </details>
+                                @else
+                                    <div class="text-sm text-gray-400 text-center py-8 font-medium">
+                                        <div class="text-3xl mb-2">📭</div>
+                                        No slots
+                                    </div>
+                                @endif
                             </div>
                         </div>
                         @endforeach
@@ -82,92 +145,6 @@
                 </div>
             </div>
 
-            <!-- Slots List -->
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">All Slots</h3>
-                    
-                    @if($slots->count() > 0)
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Date</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Time</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Staff</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @foreach($slots->take(50) as $slot)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        {{ $slot->date->format('M d, Y') ?? \Carbon\Carbon::parse($slot->date)->format('M d, Y') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        {{ $slot->start_time->format('h:i A') }} - {{ $slot->end_time->format('h:i A') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        {{ $slot->staff->name ?? 'Unassigned' }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        @if($slot->status === 'booked')
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                            Booked
-                                        </span>
-                                        @elseif($slot->status === 'available')
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                            Available
-                                        </span>
-                                        @elseif($slot->status === 'rescheduled')
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                            Rescheduled
-                                        </span>
-                                        @else
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                                            Unavailable
-                                        </span>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        @if($slot->status !== 'booked')
-                                        <form method="POST" action="{{ route('organization.slots.update-status', [$organization, $slot]) }}" class="inline-flex items-center gap-2">
-                                            @csrf
-                                            @method('PUT')
-                                            <select name="status" onchange="this.form.submit()" class="text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md">
-                                                <option value="available" {{ $slot->status === 'available' ? 'selected' : '' }}>Available</option>
-                                                <option value="unavailable" {{ $slot->status === 'unavailable' ? 'selected' : '' }}>Unavailable</option>
-                                                <option value="rescheduled" {{ $slot->status === 'rescheduled' ? 'selected' : '' }}>Rescheduled</option>
-                                            </select>
-                                        </form>
-                                        <form method="POST" action="{{ route('organization.slots.destroy', [$organization, $slot]) }}" class="inline ml-2" onsubmit="return confirm('Delete this slot?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                                        </form>
-                                        @else
-                                        <a href="{{ route('organization.bookings.show', [$organization, $slot->booking]) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">
-                                            View Booking
-                                        </a>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    @else
-                    <div class="text-center py-12">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No slots available</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by generating slots from your shifts.</p>
-                    </div>
-                    @endif
-                </div>
-            </div>
         </div>
     </div>
 
@@ -178,6 +155,16 @@
                 <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Generate Slots from Shifts</h3>
                 <form method="POST" action="{{ route('organization.slots.generate', $organization) }}">
                     @csrf
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Service</label>
+                        <select name="service_id" required
+                                class="block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                            <option value="">Select a service</option>
+                            @foreach($organization->services()->where('is_active', true)->get() as $service)
+                                <option value="{{ $service->id }}">{{ $service->name }} ({{ $service->duration }} min)</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range</label>
                         <input type="date" name="start_date" value="{{ date('Y-m-d') }}" min="{{ date('Y-m-d') }}" required
@@ -224,5 +211,7 @@
             updateWeekDisplay();
             window.location.reload();
         }
+
+        updateWeekDisplay();
     </script>
 </x-app-layout>

@@ -12,11 +12,14 @@ class Slot extends Model
     protected $fillable = [
         'shift_id',
         'organization_id',
+        'service_id',
         'date',
         'start_time',
         'end_time',
         'assigned_staff_id',
         'status',
+        'max_bookings',
+        'current_bookings',
     ];
 
     protected $casts = [

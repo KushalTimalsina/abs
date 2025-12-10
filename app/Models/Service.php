@@ -42,6 +42,15 @@ class Service extends Model
     }
 
     /**
+     * Get team members who can provide this service
+     */
+    public function teamMembers()
+    {
+        return $this->belongsToMany(User::class, 'service_user')
+            ->withTimestamps();
+    }
+
+    /**
      * Get price in rupees (from paisa)
      */
     public function getPriceInRupeesAttribute(): float

@@ -58,7 +58,8 @@
                 </div>
                 @else
                 <div class="flex items-center space-x-2">
-                    <a href="{{ route('widget.auth.google', $organization->slug) }}" 
+                    <a href="#" 
+                       onclick="openGoogleLogin(event, '{{ route('widget.auth.google', $organization->slug) }}')"
                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
                         <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -69,6 +70,39 @@
                         Login with Google
                     </a>
                 </div>
+
+                <script>
+                function openGoogleLogin(e, url) {
+                    e.preventDefault();
+                    
+                    // Open in popup window
+                    const width = 500;
+                    const height = 600;
+                    const left = (screen.width - width) / 2;
+                    const top = (screen.height - height) / 2;
+                    
+                    const popup = window.open(
+                        url,
+                        'Google Login',
+                        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
+                    );
+                    
+                    // Check if popup was blocked
+                    if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+                        alert('Please allow popups for this site to login with Google');
+                        return;
+                    }
+                    
+                    // Poll for popup close and reload
+                    const checkPopup = setInterval(function() {
+                        if (popup.closed) {
+                            clearInterval(checkPopup);
+                            // Reload the page to show logged-in state
+                            window.location.reload();
+                        }
+                    }, 500);
+                }
+                </script>
                 @endauth
             </div>
         </div>

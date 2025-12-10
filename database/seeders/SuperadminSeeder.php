@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Superadmin;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -16,10 +15,10 @@ class SuperadminSeeder extends Seeder
     {
         // Create default superadmin account
         Superadmin::create([
-            'name' => 'Super Admin',
-            'email' => 'superadmin@abs.com',
-            'password' => Hash::make('password'), // Change this in production!
-            'phone' => '+977-9800000000',
+            'name' => 'Super Admin NMG Development',
+            'email' => 'superadmin@nmgdevelopment.xyz',
+            'password' => Hash::make('Password@9243'), // Change this in production!
+            'phone' => '+977-9866889314',
             'is_active' => true,
             'email_verified_at' => now(),
         ]);
