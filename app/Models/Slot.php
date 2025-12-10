@@ -45,6 +45,14 @@ class Slot extends Model
     }
 
     /**
+     * Get the service this slot is for
+     */
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
+
+    /**
      * Get the assigned staff member
      */
     public function staff()

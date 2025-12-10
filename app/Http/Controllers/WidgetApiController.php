@@ -70,9 +70,9 @@ class WidgetApiController extends Controller
         $date = Carbon::parse($request->date);
         $now = Carbon::now();
         
-        // Note: Slots table doesn't have service_id, slots are linked via shifts
-        // We need to get slots for the organization on the specified date
+        // Get slots for the organization, service, and date
         $slots = Slot::where('organization_id', $organization->id)
+            ->where('service_id', $service->id)
             ->whereDate('date', $date)
             ->where('status', 'available')
             ->whereDoesntHave('booking', function($q) {

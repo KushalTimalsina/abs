@@ -67,7 +67,15 @@ class Service extends Model
     }
 
     /**
-     * Resolve route binding scoped to organization
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName()
+    {
+        return 'id';
+    }
+
+    /**
+     * Retrieve the model for a bound value (scoped to organization).
      */
     public function resolveRouteBinding($value, $field = null)
     {
@@ -77,7 +85,7 @@ class Service extends Model
         // If organization is present, scope the service to it
         if ($organization) {
             return $this->where('organization_id', $organization->id)
-                        ->where($field ?? 'id', $value)
+                        ->where($field ?? $this->getRouteKeyName(), $value)
                         ->firstOrFail();
         }
         

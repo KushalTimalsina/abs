@@ -157,7 +157,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{organization}/switch', [OrganizationController::class, 'switch'])->name('switch');
         
         // Service routes
-        Route::prefix('{organization}/services')->name('services.')->group(function () {
+        Route::prefix('{organization}/services')->name('services.')->scopedBindings()->group(function () {
             Route::get('/', [\App\Http\Controllers\ServiceController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\ServiceController::class, 'create'])->name('create');
             Route::post('/', [\App\Http\Controllers\ServiceController::class, 'store'])->name('store');
