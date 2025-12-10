@@ -153,6 +153,8 @@
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Actions</h3>
                             
                             <div class="space-y-3">
+                                @if(auth()->user()->user_type !== 'customer')
+                                {{-- Admin/Staff Actions --}}
                                 @if($booking->status === 'pending')
                                     <form action="{{ route('organization.bookings.confirm', [$organization, $booking]) }}" method="POST">
                                         @csrf
@@ -211,6 +213,28 @@
                                 <a href="{{ route('organization.bookings.edit', [$organization, $booking]) }}" class="block w-full text-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-semibold">
                                     Edit Booking
                                 </a>
+                                
+                                @else
+                                {{-- Customer Actions --}}
+                                @if($booking->payment && $booking->invoice)
+                                    <a href="{{ route('invoices.show', $booking->invoice) }}" class="block w-full text-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md font-semibold">
+                                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        View Invoice
+                                    </a>
+                                @endif
+                                
+                                @if(in_array($booking->status, ['pending', 'confirmed']))
+                                    <form action="{{ route('customer.bookings.cancel', $booking) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
+                                        @csrf
+                                        @method('PUT')
+                                        <button type="submit" class="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-semibold">
+                                            Cancel My Booking
+                                        </button>
+                                    </form>
+                                @endif
+                                @endif
                             </div>
                         </div>
                     </div>

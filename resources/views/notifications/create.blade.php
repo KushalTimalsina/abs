@@ -48,20 +48,28 @@
                             <x-input-label :value="__('Send To')" />
                             <div class="mt-2 space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" name="recipient_type" value="all" x-model="recipientType" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" checked>
+                                    <input type="radio" name="recipient_type" value="all_team" x-model="recipientType" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" checked>
                                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">All Team Members ({{ $teamMembers->count() }} members)</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="radio" name="recipient_type" value="specific" x-model="recipientType" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Specific Members</span>
+                                    <input type="radio" name="recipient_type" value="specific_team" x-model="recipientType" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Specific Team Members</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="recipient_type" value="all_customers" x-model="recipientType" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">All Customers ({{ $customers->count() }} customers)</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="recipient_type" value="specific_customers" x-model="recipientType" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Specific Customers</span>
                                 </label>
                             </div>
                             <x-input-error :messages="$errors->get('recipient_type')" class="mt-2" />
                         </div>
 
-                        <!-- Specific Recipients -->
-                        <div class="mb-6" x-show="recipientType === 'specific'" x-cloak>
-                            <x-input-label :value="__('Select Members')" />
+                        <!-- Specific Team Recipients -->
+                        <div class="mb-6" x-show="recipientType === 'specific_team'" x-cloak>
+                            <x-input-label :value="__('Select Team Members')" />
                             <div class="mt-2 max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-md p-3 space-y-2">
                                 @foreach($teamMembers as $member)
                                 <label class="flex items-center">
@@ -69,6 +77,22 @@
                                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
                                         {{ $member->name }} ({{ $member->email }})
                                         <span class="text-xs text-gray-500">- {{ ucfirst($member->pivot->role) }}</span>
+                                    </span>
+                                </label>
+                                @endforeach
+                            </div>
+                            <x-input-error :messages="$errors->get('recipients')" class="mt-2" />
+                        </div>
+
+                        <!-- Specific Customer Recipients -->
+                        <div class="mb-6" x-show="recipientType === 'specific_customers'" x-cloak>
+                            <x-input-label :value="__('Select Customers')" />
+                            <div class="mt-2 max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-md p-3 space-y-2">
+                                @foreach($customers as $customer)
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="recipients[]" value="{{ $customer->id }}" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                                        {{ $customer->name }} ({{ $customer->email }})
                                     </span>
                                 </label>
                                 @endforeach

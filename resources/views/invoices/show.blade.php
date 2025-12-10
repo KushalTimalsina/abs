@@ -17,6 +17,8 @@
                     </svg>
                     Print
                 </button>
+                
+                @if(auth()->user()->user_type !== 'customer')
                 <form method="POST" action="{{ route('invoices.regenerate', $invoice) }}" onsubmit="return confirm('Are you sure you want to regenerate this invoice? This will update the invoice with current payment information.');">
                     @csrf
                     <button type="submit" class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
@@ -35,6 +37,7 @@
                         Email Invoice
                     </button>
                 </form>
+                @endif
             </div>
         </div>
     </x-slot>

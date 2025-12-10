@@ -273,6 +273,11 @@ class BookingController extends Controller
      */
     public function confirm(Organization $organization, Booking $booking)
     {
+        // Customers cannot confirm bookings
+        if (auth()->user()->user_type === 'customer') {
+            abort(403, 'Customers are not authorized to confirm bookings.');
+        }
+        
         // Verify booking belongs to organization
         if ($booking->organization_id !== $organization->id) {
             abort(403);
@@ -302,6 +307,11 @@ class BookingController extends Controller
      */
     public function edit(Organization $organization, Booking $booking)
     {
+        // Customers cannot edit bookings
+        if (auth()->user()->user_type === 'customer') {
+            abort(403, 'Customers are not authorized to edit bookings.');
+        }
+        
         $this->authorize('view', $organization);
         
         if ($booking->organization_id !== $organization->id) {
@@ -319,6 +329,11 @@ class BookingController extends Controller
      */
     public function update(Request $request, Organization $organization, Booking $booking)
     {
+        // Customers cannot update bookings
+        if (auth()->user()->user_type === 'customer') {
+            abort(403, 'Customers are not authorized to update bookings.');
+        }
+        
         $this->authorize('view', $organization);
         
         if ($booking->organization_id !== $organization->id) {
@@ -345,6 +360,10 @@ class BookingController extends Controller
      */
     public function complete(Organization $organization, Booking $booking)
     {
+        // Customers cannot mark bookings as complete
+        if (auth()->user()->user_type === 'customer') {
+            abort(403, 'Customers are not authorized to mark bookings as complete.');
+        }
         // Verify booking belongs to organization
         if ($booking->organization_id !== $organization->id) {
             abort(403);

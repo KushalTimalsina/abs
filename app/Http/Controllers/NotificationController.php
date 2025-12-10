@@ -114,7 +114,15 @@ class NotificationController extends Controller
             ->wherePivot('status', 'active')
             ->get();
         
-        return view('notifications.create', compact('organization', 'teamMembers'));
+        // Get customers (users who have made bookings with this organization)
+        $customers = \App\Models\User::whereHas('bookings', function($query) use ($organization) {
+            $query->where('organization_id', $organization->id);
+        })
+        ->where('user_type', 'customer')
+        ->distinct()
+        ->get();
+        
+        return view('notifications.create', compact('organization', 'teamMembers', 'customers'));
     }
 
     /**
@@ -200,20 +208,31 @@ class NotificationController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'message' => ['required', 'string'],
             'type' => ['required', 'in:info,success,warning,error'],
-            'recipient_type' => ['required', 'in:all,specific'],
-            'recipients' => ['required_if:recipient_type,specific', 'array'],
+            'recipient_type' => ['required', 'in:all_team,specific_team,all_customers,specific_customers'],
+            'recipients' => ['required_if:recipient_type,specific_team,specific_customers', 'array'],
             'recipients.*' => ['exists:users,id'],
         ]);
         
-        // Get recipients
-        if ($validated['recipient_type'] === 'all') {
+        // Get recipients based on type
+        if ($validated['recipient_type'] === 'all_team') {
             $recipients = $organization->users()
                 ->wherePivot('status', 'active')
                 ->get();
-        } else {
+        } elseif ($validated['recipient_type'] === 'specific_team') {
             $recipients = $organization->users()
                 ->whereIn('users.id', $validated['recipients'])
                 ->wherePivot('status', 'active')
+                ->get();
+        } elseif ($validated['recipient_type'] === 'all_customers') {
+            $recipients = \App\Models\User::whereHas('bookings', function($query) use ($organization) {
+                $query->where('organization_id', $organization->id);
+            })
+            ->where('user_type', 'customer')
+            ->distinct()
+            ->get();
+        } else { // specific_customers
+            $recipients = \App\Models\User::whereIn('id', $validated['recipients'])
+                ->where('user_type', 'customer')
                 ->get();
         }
         
@@ -233,7 +252,8 @@ class NotificationController extends Controller
             $validated['type']
         ));
         
+        $recipientType = str_contains($validated['recipient_type'], 'customer') ? 'customer(s)' : 'team member(s)';
         return redirect()->route('notifications.index')
-            ->with('success', 'Notification sent to ' . $recipients->count() . ' team member(s)');
+            ->with('success', 'Notification sent to ' . $recipients->count() . ' ' . $recipientType);
     }
 }

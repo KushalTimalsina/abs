@@ -23,11 +23,23 @@ class InvoiceController extends Controller
      */
     public function show(Invoice $invoice)
     {
-        // Load relationships based on invoice type
+        // Authorization: Check if user can view this invoice
+        $user = auth()->user();
+        
         if ($invoice->isBookingInvoice()) {
             $invoice->load(['booking.service', 'booking.customer', 'booking.organization', 'payment']);
+            
+            // Customers can only view their own booking invoices
+            if ($user->user_type === 'customer' && $invoice->booking->customer_id !== $user->id) {
+                abort(403, 'Unauthorized access to this invoice.');
+            }
         } else {
             $invoice->load(['subscriptionPayment.subscriptionPlan', 'subscriptionPayment.organization']);
+            
+            // Customers cannot view subscription invoices
+            if ($user->user_type === 'customer') {
+                abort(403, 'Unauthorized access to this invoice.');
+            }
         }
 
         return view('invoices.show', compact('invoice'));
@@ -38,11 +50,23 @@ class InvoiceController extends Controller
      */
     public function download(Invoice $invoice)
     {
-        // Load relationships
+        // Authorization: Check if user can download this invoice
+        $user = auth()->user();
+        
         if ($invoice->isBookingInvoice()) {
             $invoice->load(['booking.service', 'booking.customer', 'booking.organization', 'payment']);
+            
+            // Customers can only download their own booking invoices
+            if ($user->user_type === 'customer' && $invoice->booking->customer_id !== $user->id) {
+                abort(403, 'Unauthorized access to this invoice.');
+            }
         } else {
             $invoice->load(['subscriptionPayment.subscriptionPlan', 'subscriptionPayment.organization']);
+            
+            // Customers cannot download subscription invoices
+            if ($user->user_type === 'customer') {
+                abort(403, 'Unauthorized access to this invoice.');
+            }
         }
 
         $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
@@ -123,6 +147,12 @@ class InvoiceController extends Controller
      */
     public function regenerate(Invoice $invoice)
     {
+        // Authorization: Only admins and organization staff can regenerate invoices
+        $user = auth()->user();
+        if ($user->user_type === 'customer') {
+            abort(403, 'Customers are not authorized to regenerate invoices.');
+        }
+        
         // Get the payment for this invoice
         $payment = $invoice->payment;
         
@@ -154,6 +184,12 @@ class InvoiceController extends Controller
      */
     public function email(Invoice $invoice)
     {
+        // Authorization: Only admins and organization staff can email invoices
+        $user = auth()->user();
+        if ($user->user_type === 'customer') {
+            abort(403, 'Customers are not authorized to email invoices.');
+        }
+        
         try {
             // Get customer email based on invoice type
             if ($invoice->isBookingInvoice()) {

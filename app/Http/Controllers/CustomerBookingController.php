@@ -21,7 +21,7 @@ class CustomerBookingController extends Controller
         }
 
         $bookings = Booking::where('customer_id', $customer->id)
-            ->with(['organization', 'service', 'slot'])
+            ->with(['organization', 'service', 'slot', 'invoice'])
             ->orderBy('booking_date', 'desc')
             ->orderBy('start_time', 'desc')
             ->paginate(10);

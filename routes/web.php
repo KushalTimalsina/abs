@@ -16,9 +16,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Landing Page
+Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+// Credits Page (accessible to everyone)
+Route::get('/credits', [\App\Http\Controllers\HomeController::class, 'credits'])->name('credits');
 
 // Superadmin authentication routes
 Route::prefix('superadmin')->name('superadmin.')->group(function () {
@@ -222,11 +224,22 @@ Route::get('/invitations/accept/{token}', [\App\Http\Controllers\TeamInvitationC
 // Public widget route
 Route::get('/widget/{slug}', [\App\Http\Controllers\WidgetController::class, 'show'])->name('widget.show');
 
+// Widget Google OAuth routes
+Route::get('/widget/{organization}/auth/google', [\App\Http\Controllers\WidgetAuthController::class, 'redirectToGoogle'])->name('widget.auth.google');
+Route::get('/widget/auth/google/callback', [\App\Http\Controllers\WidgetAuthController::class, 'handleGoogleCallback'])->name('widget.auth.google.callback');
+
 // API route for getting available slots (used by booking widget)
 Route::get('/api/organizations/{organization}/services/{service}/available-slots', [\App\Http\Controllers\BookingController::class, 'getAvailableSlots'])->name('api.available-slots');
 
 // Widget API routes (public)
 Route::prefix('api/widget/{organization}')->name('api.widget.')->scopeBindings()->middleware(\App\Http\Middleware\HandleWidgetCors::class)->group(function () {
+    // Auth routes
+    Route::post('/auth/register', [\App\Http\Controllers\WidgetAuthController::class, 'register'])->name('auth.register');
+    Route::post('/auth/login', [\App\Http\Controllers\WidgetAuthController::class, 'login'])->name('auth.login');
+    Route::post('/auth/logout', [\App\Http\Controllers\WidgetAuthController::class, 'logout'])->middleware('auth:sanctum')->name('auth.logout');
+    Route::get('/auth/user', [\App\Http\Controllers\WidgetAuthController::class, 'user'])->middleware('auth:sanctum')->name('auth.user');
+    
+    // Service and booking routes
     Route::get('/services', [\App\Http\Controllers\WidgetApiController::class, 'getServices'])->name('services');
     Route::get('/services/{service}/slots', [\App\Http\Controllers\WidgetApiController::class, 'getAvailableSlots'])->name('slots');
     Route::post('/bookings', [\App\Http\Controllers\WidgetApiController::class, 'createBooking'])->name('bookings');
@@ -234,6 +247,18 @@ Route::prefix('api/widget/{organization}')->name('api.widget.')->scopeBindings()
     Route::post('/bookings/{booking}/payment', [\App\Http\Controllers\WidgetApiController::class, 'initiatePayment'])->name('payment.initiate');
     Route::get('/bookings/{booking}/payment/{payment}/success', [\App\Http\Controllers\WidgetApiController::class, 'paymentSuccess'])->name('payment.success');
     Route::get('/bookings/{booking}/payment/{payment}/failure', [\App\Http\Controllers\WidgetApiController::class, 'paymentFailure'])->name('payment.failure');
+});
+
+// Customer Dashboard Routes (for logged-in customers)
+Route::middleware('auth')->prefix('customer')->name('customer.')->group(function () {
+    Route::get('/bookings', [\App\Http\Controllers\CustomerBookingController::class, 'index'])->name('bookings');
+    Route::put('/bookings/{booking}/cancel', [\App\Http\Controllers\CustomerBookingController::class, 'cancel'])->name('bookings.cancel');
+});
+
+// Invoice routes
+Route::middleware('auth')->group(function () {
+    Route::get('/invoices/{invoice}', [\App\Http\Controllers\InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\InvoiceController::class, 'download'])->name('invoices.download');
 });
 
 // Public Booking Routes (Customer-facing)

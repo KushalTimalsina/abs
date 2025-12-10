@@ -45,11 +45,19 @@ class AuthController extends Controller
                     'google_id' => $googleUser->getId(),
                     'email_verified_at' => now(),
                     'password' => Hash::make(Str::random(24)), // Random password for OAuth users
+                    'user_type' => 'customer',
                 ]);
             }
             
             // Log the user in
             Auth::login($user, true);
+            
+            // Check if this was from widget
+            if (session('from_widget')) {
+                $orgSlug = session('widget_organization', 'default');
+                session()->forget(['widget_organization', 'from_widget']);
+                return redirect("/widget/{$orgSlug}");
+            }
             
             return redirect()->intended('dashboard');
             
@@ -59,6 +67,13 @@ class AuthController extends Controller
                 'exception' => $e,
                 'trace' => $e->getTraceAsString()
             ]);
+            
+            // Check if from widget
+            if (session('from_widget')) {
+                $orgSlug = session('widget_organization', 'default');
+                session()->forget(['widget_organization', 'from_widget']);
+                return redirect("/widget/{$orgSlug}")->with('error', 'Failed to authenticate with Google');
+            }
             
             return redirect()->route('login')->with('error', 'Failed to authenticate with Google. Please try again. Error: ' . $e->getMessage());
         }
