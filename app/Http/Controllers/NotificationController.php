@@ -25,7 +25,23 @@ class NotificationController extends Controller
         
         $unreadCount = $user->unreadNotifications()->count();
         
-        return view('notifications.index', compact('notifications', 'unreadCount'));
+        // Get sent notifications for admins/superadmin
+        $sentNotifications = null;
+        if ($superadmin || ($user && isAdmin())) {
+            $sentNotifications = \App\Models\CustomNotification::where(function($query) use ($superadmin, $user) {
+                if ($superadmin) {
+                    $query->where('sender_type', 'superadmin')
+                          ->where('sender_id', $superadmin->id);
+                } else {
+                    $query->where('sender_type', 'organization')
+                          ->where('sender_id', $user->organizations()->first()->id ?? 0);
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(20, ['*'], 'sent_page');
+        }
+        
+        return view('notifications.index', compact('notifications', 'unreadCount', 'sentNotifications'));
     }
 
     /**
@@ -127,29 +143,31 @@ class NotificationController extends Controller
             
             if ($validated['recipient_type'] === 'all') {
                 $recipients = \App\Models\User::whereHas('organizations', function($query) {
-                    $query->where('status', 'active')
-                          ->wherePivot('role', 'admin')
-                          ->wherePivot('status', 'active');
+                    $query->where('organizations.status', 'active')
+                          ->where('organization_users.role', 'admin')
+                          ->where('organization_users.status', 'active');
                 })->get();
             } elseif ($validated['recipient_type'] === 'specific') {
                 $recipients = \App\Models\User::whereHas('organizations', function($query) use ($validated) {
                     $query->whereIn('organizations.id', $validated['organizations'])
                           ->where('organizations.status', 'active')
-                          ->wherePivot('role', 'admin')
-                          ->wherePivot('status', 'active');
+                          ->where('organization_users.role', 'admin')
+                          ->where('organization_users.status', 'active');
                 })->get();
             } elseif ($validated['recipient_type'] === 'plan') {
                 $recipients = \App\Models\User::whereHas('organizations.subscription', function($query) use ($validated) {
                     $query->whereIn('subscription_plan_id', $validated['plans'])
                           ->where('is_active', true);
                 })->whereHas('organizations', function($query) {
-                    $query->wherePivot('role', 'admin')
-                          ->wherePivot('status', 'active');
+                    $query->where('organizations.status', 'active')
+                          ->where('organization_users.role', 'admin')
+                          ->where('organization_users.status', 'active');
                 })->get();
             }
             
             $recipients = $recipients->unique('id');
             
+            // Send notification to each recipient
             foreach ($recipients as $recipient) {
                 $recipient->notify(new \App\Notifications\CustomNotification(
                     $validated['title'],
@@ -158,7 +176,14 @@ class NotificationController extends Controller
                 ));
             }
             
-            return redirect()->route('notifications.index')
+            // Also send a copy to self so superadmin can see it in their notifications
+            $superadmin->notify(new \App\Notifications\CustomNotification(
+                $validated['title'],
+                '[SENT] ' . $validated['message'],
+                $validated['type']
+            ));
+            
+            return redirect(url('/superadmin/notifications'))
                 ->with('success', 'Notification sent to ' . $recipients->count() . ' organization admin(s)');
         }
         
@@ -200,6 +225,13 @@ class NotificationController extends Controller
                 $validated['type']
             ));
         }
+        
+        // Also send a copy to self so admin can see it in their notifications
+        $user->notify(new \App\Notifications\CustomNotification(
+            $validated['title'],
+            '[SENT] ' . $validated['message'],
+            $validated['type']
+        ));
         
         return redirect()->route('notifications.index')
             ->with('success', 'Notification sent to ' . $recipients->count() . ' team member(s)');

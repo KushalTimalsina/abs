@@ -58,6 +58,16 @@ Route::middleware(['superadmin'])->prefix('superadmin')->name('superadmin.')->gr
         Route::put('/{gateway}', [\App\Http\Controllers\Superadmin\PaymentSettingsController::class, 'update'])->name('update');
         Route::delete('/{gateway}/qr', [\App\Http\Controllers\Superadmin\PaymentSettingsController::class, 'deleteQr'])->name('delete-qr');
     });
+
+    // Notification routes (for superadmin)
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\NotificationController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\NotificationController::class, 'store'])->name('store');
+        Route::post('/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('mark-read');
+        Route::post('/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+        Route::delete('/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
+    });
 });
 
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
