@@ -19,14 +19,14 @@
         <!-- Password -->
         <div>
             <x-input-label for="password" :value="__('New password')" />
-            <x-text-input id="password" type="password" name="password" required autocomplete="new-password" placeholder="••••••••" />
+            <x-password-input id="password" name="password" required autocomplete="new-password" />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
         <!-- Confirm Password -->
         <div>
             <x-input-label for="password_confirmation" :value="__('Confirm password')" />
-            <x-text-input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="••••••••" />
+            <x-password-input id="password_confirmation" name="password_confirmation" required autocomplete="new-password" :showStrength="false" :showRequirements="false" />
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 

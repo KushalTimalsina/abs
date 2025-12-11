@@ -13,6 +13,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <script src="{{ asset('js/password-validator.js') }}" defer></script>
     </head>
     <body class="bg-gray-50 dark:bg-gray-900">
         

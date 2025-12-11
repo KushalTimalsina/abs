@@ -23,7 +23,7 @@
 
         <form method="POST" action="{{ route('logout') }}" class="flex-1">
             @csrf
-            <x-secondary-button class="w-full">
+            <x-secondary-button type="submit" class="w-full">
                 {{ __('Log out') }}
             </x-secondary-button>
         </form>

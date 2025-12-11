@@ -71,7 +71,7 @@ class TeamMemberController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
             'role' => ['required', 'in:admin,team_member,frontdesk'],
             'permissions' => ['nullable', 'array'],
         ]);
